@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Coordinate System & Viewpoint (LookAt) — World to Camera & 2D Projection</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for crisp LaTeX equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #f1f5f9;
+      --border-subtle: #e2e8f0;
+      --border-focus: rgba(2, 132, 199, 0.5);
+
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      /* Camera Axes Colors */
+      --color-forward: #c026d3; /* Magenta / Purple */
+      --color-right: #d97706;   /* Amber / Gold */
+      --color-up: #0284c7;      /* Cyan / Teal */
+
+      /* World Axes Colors */
+      --world-x: #dc2626; /* Red */
+      --world-y: #059669; /* Green */
+      --world-z: #2563eb; /* Blue */
+
+      /* Point P Accent */
+      --color-point: #059669;   /* Emerald */
+      --color-target: #ca8a04;  /* Yellow */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* KaTeX equation display enhancements */
+    .katex {
+      font-size: 1.05em;
+      color: #1e293b;
+    }
+    .katex-display {
+      margin: 8px 0 12px 0 !important;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+    .math-card .katex {
+      font-size: 0.96em;
+    }
+
+    /* Top Navigation Header */
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #1d4ed8);
+    }
+
+    .btn-active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+
+    /* Main Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: minmax(500px, 1.15fr) minmax(420px, 1fr);
+      gap: 18px;
+      padding: 18px 24px;
+      flex: 1;
+      max-width: 1920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1200px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Column: Visual Viewports */
+    .viewport-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .viewport-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+      position: relative;
+    }
+
+    .viewport-header {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .viewport-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .viewport-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #ffffff;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .canvas-wrapper:active {
+      cursor: grabbing;
+    }
+
+    .canvas-wrapper.no-drag {
+      cursor: default;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hud-badge {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-muted);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+
+    .hud-badge strong {
+      color: #0f172a;
+    }
+
+    .hud-bottom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      pointer-events: none;
+      font-size: 0.72rem;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* Right Column: Controls & Live Formula Explanations */
+    .math-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    /* Custom Scrollbar */
+    .math-col::-webkit-scrollbar {
+      width: 6px;
+    }
+    .math-col::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .math-col::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .math-col::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Interactive Control Box */
+    .controls-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .preset-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .pill-btn {
+      font-size: 0.75rem;
+      padding: 5px 11px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .pill-btn.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 65px;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+
+    .slider-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .slider-tag {
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .slider-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: right;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(2, 132, 199, 0.2);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Math Cards */
+    .math-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px 18px;
+      position: relative;
+      transition: border-color 0.2s ease;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    }
+
+    .math-card:hover {
+      border-color: #cbd5e1;
+    }
+
+    .math-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .math-step-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    .math-card-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .math-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .formula-title {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Code & Live Calculation Displays */
+    .formula-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .formula-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      margin: 4px 0;
+    }
+
+    .f-comment {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .f-var {
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    .f-accent-f {
+      color: var(--color-forward);
+      font-weight: 600;
+    }
+
+    .f-accent-r {
+      color: var(--color-right);
+      font-weight: 600;
+    }
+
+    .f-accent-u {
+      color: var(--color-up);
+      font-weight: 600;
+    }
+
+    .f-accent-p {
+      color: var(--color-point);
+      font-weight: 600;
+    }
+
+    .f-num {
+      color: #b45309;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .f-highlight {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border-left: 3px solid #0284c7;
+      font-size: 0.78rem;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .result-badge.right {
+      border-color: var(--color-right);
+    }
+
+    .result-badge.up {
+      border-color: var(--color-up);
+    }
+
+    .result-badge.forward {
+      border-color: var(--color-forward);
+    }
+
+    .result-badge.point {
+      border-color: var(--color-point);
+    }
+
+    /* Live 4x4 View Matrix Grid */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .matrix-cell {
+      padding: 6px 2px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-weight: 500;
+      color: #1e293b;
+    }
+
+    .matrix-header {
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      padding-bottom: 2px;
+    }
+
+    /* Footer info */
+    footer {
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Linear Algebra &amp; Graphics</span>
+      <div>
+        <h1>Camera Coordinate System &amp; 3D Viewpoint (LookAt)</h1>
+        <div class="brand-sub">Explore how 3D world space transforms through the camera lens using linear algebra</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btnAutoOrbit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span id="autoOrbitText">Auto-Orbit Camera</span>
+      </button>
+      <button class="btn" id="btnResetAll">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset All
+      </button>
+    </div>
+  </header>
+
+  <!-- App Main Content -->
+  <main class="app-container">
+    
+    <!-- Left Column: Visual Displays -->
+    <div class="viewport-col">
+      
+      <!-- Viewport 1: 3D God's Eye World View -->
+      <div class="viewport-card">
+        <div class="viewport-header">
+          <div class="viewport-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+            1. 3D World Space (God's Eye Overview)
+          </div>
+          <div class="viewport-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-forward);"></span> Forward</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-right);"></span> Right</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-up);"></span> TrueUp</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-point);"></span> Point P</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper" id="worldCanvasWrapper">
+          <canvas id="worldCanvas"></canvas>
+          <div class="viewport-overlay">
+            <div class="hud-badge">Camera Pos: <strong id="hudCamPos">(20.0, -20.0, 20.0)</strong></div>
+            <div class="hud-badge">Target Point: <strong id="hudTarget">(0.0, 0.0, 0.0)</strong></div>
+          </div>
+          <div class="hud-bottom-hint">Left-click &amp; drag to rotate 3D view | Mouse wheel to zoom</div>
+        </div>
+      </div>
+
+      <!-- Viewport 2: Camera Viewport (What the camera sees) -->
+      <div class="viewport-card">
+        <div class="viewport-header">
+          <div class="viewport-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            2. Camera Viewport (Screen / 2D Canvas Projection)
+          </div>
+          <div class="viewport-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#eab308;"></span> Lens Center (0,0)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-point);"></span> Projected Point P</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper no-drag" id="screenCanvasWrapper">
+          <canvas id="screenCanvas"></canvas>
+          <div class="viewport-overlay">
+            <div class="hud-badge">Canvas Viewport: <strong id="hudResolution">640 &times; 380 px</strong></div>
+            <div class="hud-badge">Screen Pos: <strong id="hudPointScreen">Pixel (0, 0)</strong></div>
+            <div class="hud-badge" id="hudDepthBadge" style="color:#10b981;">Z_cam (Depth): <strong>34.6</strong></div>
+          </div>
+          <div class="hud-bottom-hint">Simulates the camera sensor: what the camera actually sees in 2D</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Interactive Math & Controls -->
+    <div class="math-col">
+      
+      <!-- Interactive Parameter Controls -->
+      <div class="controls-card">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          Position &amp; Viewpoint Controls
+        </div>
+
+        <!-- Presets -->
+        <div class="preset-pills">
+          <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; margin-right:4px;">Presets:</span>
+          <button class="pill-btn active" data-preset="default">Lecture (20, -20, 20)</button>
+          <button class="pill-btn" data-preset="front">Front View</button>
+          <button class="pill-btn" data-preset="top">Top-Down View</button>
+          <button class="pill-btn" data-preset="isometric">Isometric View</button>
+          <button class="pill-btn" data-preset="side">Side View</button>
+          <button class="pill-btn" data-preset="close">Close-up (Cube)</button>
+        </div>
+
+        <!-- Camera Position Sliders -->
+        <div class="slider-group">
+          <div style="font-size:0.8rem; font-weight:600; color:#38bdf8; margin-bottom:2px;">Camera Position ($\mathbf{camPos}$):</div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(239,68,68,0.2); color:#ef4444;">camPos.X</span></span>
+            <input type="range" id="camX" min="-40" max="40" step="0.5" value="20">
+            <span class="slider-val" id="valCamX">20.0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">camPos.Y</span></span>
+            <input type="range" id="camY" min="-40" max="40" step="0.5" value="-20">
+            <span class="slider-val" id="valCamY">-20.0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(59,130,246,0.2); color:#3b82f6;">camPos.Z</span></span>
+            <input type="range" id="camZ" min="-40" max="40" step="0.5" value="20">
+            <span class="slider-val" id="valCamZ">20.0</span>
+          </div>
+        </div>
+
+        <!-- Camera Target & FOV -->
+        <div class="slider-group">
+          <div style="font-size:0.8rem; font-weight:600; color:#eab308; margin-bottom:2px;">Target Point &amp; Focal Length ($f$ / FOV):</div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(234,179,8,0.2); color:#eab308;">Target.Z</span></span>
+            <input type="range" id="targetZ" min="-15" max="15" step="0.5" value="0">
+            <span class="slider-val" id="valTargetZ">0.0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(168,85,247,0.2); color:#c084fc;">Focal Length (f)</span></span>
+            <input type="range" id="fovSlider" min="200" max="800" step="10" value="450">
+            <span class="slider-val" id="valFov">450</span>
+          </div>
+        </div>
+
+        <!-- Test Point P Sliders -->
+        <div class="slider-group" style="margin-bottom:0;">
+          <div style="font-size:0.8rem; font-weight:600; color:var(--color-point); margin-bottom:2px;">Test Point P in World Space:</div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.X</span></span>
+            <input type="range" id="ptX" min="-15" max="15" step="0.5" value="7.5">
+            <span class="slider-val" id="valPtX">7.5</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.Y</span></span>
+            <input type="range" id="ptY" min="-15" max="15" step="0.5" value="7.5">
+            <span class="slider-val" id="valPtY">7.5</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.Z</span></span>
+            <input type="range" id="ptZ" min="-15" max="15" step="0.5" value="7.5">
+            <span class="slider-val" id="valPtZ">7.5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theory Card 1: Core Concept -->
+      <div class="math-card">
+        <div class="math-card-header">
+          <div>
+            <span class="math-step-num">Core Concept</span>
+            <div class="math-card-title">1. What is Camera Viewpoint &amp; Transformation?</div>
+          </div>
+        </div>
+        <div class="math-card-desc">
+          &bull; <strong>World Coordinates:</strong> Fixed global reference frame with origin at <code>(0, 0, 0)</code>. 3D objects reside at absolute positions.<br>
+          &bull; <strong>Camera Coordinates:</strong> Observer-centric frame where origin is the camera eye position $\mathbf{camPos}$. The 2D screen cares only about whether an object lies to the <strong>Left / Right</strong> ($X_{\text{cam}}$), <strong>Up / Down</strong> ($Y_{\text{cam}}$), and <strong>Depth distance in front</strong> ($Z_{\text{cam}}$).<br>
+          &bull; <strong>Viewpoint Transformation:</strong> Translates the camera to the origin <code>(0, 0, 0)</code> and rotates the frame to align with the camera's sightline.
+        </div>
+      </div>
+
+      <!-- Theory Card 2: Compute Camera Basis -->
+      <div class="math-card">
+        <div class="math-card-header">
+          <div>
+            <span class="math-step-num">Step 1 — Linear Algebra</span>
+            <div class="math-card-title">2. Compute Camera Orthonormal Basis Vectors</div>
+          </div>
+        </div>
+        <div class="math-card-desc">
+          From 3 inputs: camera position $\mathbf{c} = \mathbf{camPos}$, target point $\mathbf{t} = \mathbf{target}$, and reference world up vector $\mathbf{up} = (0, 0, 1)$, we construct 3 mutually orthogonal unit vectors ($\mathbf{f}, \mathbf{r}, \mathbf{u}$):
+        </div>
+
+        <!-- LaTeX Display for Step 1 -->
+        <div class="katex-display">
+          $$ \mathbf{f} = \frac{\mathbf{t} - \mathbf{c}}{\|\mathbf{t} - \mathbf{c}\|}, \qquad \mathbf{r} = \frac{\mathbf{f} \times \mathbf{up}}{\|\mathbf{f} \times \mathbf{up}\|}, \qquad \mathbf{u} = \mathbf{r} \times \mathbf{f} $$
+        </div>
+
+        <div class="formula-title">Live Calculation Breakdown:</div>
+
+        <!-- Live Step: Forward -->
+        <div class="formula-block">
+          <div class="f-comment">// A. Forward axis (line of sight from camera to target)</div>
+          <div class="formula-row">
+            <span class="f-var">dir</span> = target - camPos
+          </div>
+          <div class="formula-row">
+            = (<span id="calc_target_x">0</span> - (<span id="calc_cam_x">20</span>), 
+               <span id="calc_target_y">0</span> - (<span id="calc_cam_y">-20</span>), 
+               <span id="calc_target_z">0</span> - (<span id="calc_cam_z">20</span>))
+          </div>
+          <div class="formula-row">
+            = (<span class="f-num" id="calc_dir_x">-20.00</span>, 
+               <span class="f-num" id="calc_dir_y">20.00</span>, 
+               <span class="f-num" id="calc_dir_z">-20.00</span>)
+          </div>
+          <div class="formula-row">
+            <span class="f-var">length</span> = &radic;((-20)&sup2; + 20&sup2; + (-20)&sup2;) = <span class="f-num" id="calc_dir_len">34.64</span>
+          </div>
+          <div class="formula-row">
+            <span class="f-accent-f">Forward</span> = dir / length = 
+            <span class="f-highlight" id="calc_forward_vec">(-0.58, 0.58, -0.58)</span>
+          </div>
+        </div>
+
+        <!-- Live Step: Right -->
+        <div class="formula-block">
+          <div class="f-comment">// B. Right axis — Right = normalize(Forward &times; up)</div>
+          <div class="formula-row">
+            Right_raw.x = Forward.y * up.z - Forward.z * up.y = <span class="f-num" id="calc_r_raw_x">0.58</span>
+          </div>
+          <div class="formula-row">
+            Right_raw.y = Forward.z * up.x - Forward.x * up.z = <span class="f-num" id="calc_r_raw_y">0.58</span>
+          </div>
+          <div class="formula-row">
+            Right_raw.z = Forward.x * up.y - Forward.y * up.x = <span class="f-num" id="calc_r_raw_z">0.00</span>
+          </div>
+          <div class="formula-row">
+            <span class="f-accent-r">Right</span> = Right_raw / length = 
+            <span class="f-highlight" id="calc_right_vec">(0.71, 0.71, 0.00)</span>
+          </div>
+        </div>
+
+        <!-- Live Step: TrueUp -->
+        <div class="formula-block">
+          <div class="f-comment">// C. True camera Up axis — TrueUp = cross(Right, Forward)</div>
+          <div class="formula-row">
+            <span class="f-accent-u">TrueUp</span> = 
+            <span class="f-highlight" id="calc_trueup_vec">(-0.41, 0.41, 0.82)</span>
+          </div>
+        </div>
+
+        <div class="result-badge forward">
+          <span>🎯 The 3 camera axes form an Orthonormal Basis (all unit length, mutually 90&deg; orthogonal).</span>
+        </div>
+      </div>
+
+      <!-- Theory Card 3: Transform Point P to Camera Space -->
+      <div class="math-card">
+        <div class="math-card-header">
+          <div>
+            <span class="math-step-num">Step 2 — Coordinate Projection</span>
+            <div class="math-card-title">3. Transform Point P from World Space to Camera Space</div>
+          </div>
+        </div>
+        <div class="math-card-desc">
+          For any 3D world point <strong style="color:var(--color-point);" id="text_pt_p">P = (7.5, 7.5, 7.5)</strong>, we translate relative to the camera origin, then project onto the camera's orthonormal axes using the <strong>Dot Product</strong>:
+        </div>
+
+        <!-- LaTeX Display for Step 2 -->
+        <div class="katex-display">
+          $$ \mathbf{rel} = \mathbf{P} - \mathbf{camPos}, \qquad \begin{bmatrix} X_{\text{cam}} \\ Y_{\text{cam}} \\ Z_{\text{cam}} \end{bmatrix} = \begin{bmatrix} \mathbf{rel} \cdot \mathbf{r} \\ \mathbf{rel} \cdot \mathbf{u} \\ \mathbf{rel} \cdot \mathbf{f} \end{bmatrix} $$
+        </div>
+
+        <div class="formula-title">Live Calculation Breakdown:</div>
+
+        <div class="formula-block">
+          <div class="f-comment">// 1. Translation: relative vector from camera to point: rel = P - camPos</div>
+          <div class="formula-row">
+            rel.x = <span id="calc_p_x">7.5</span> - (<span id="calc_c2_x">20.0</span>) = <span class="f-num" id="calc_rel_x">-12.50</span>
+          </div>
+          <div class="formula-row">
+            rel.y = <span id="calc_p_y">7.5</span> - (<span id="calc_c2_y">-20.0</span>) = <span class="f-num" id="calc_rel_y">27.50</span>
+          </div>
+          <div class="formula-row">
+            rel.z = <span id="calc_p_z">7.5</span> - (<span id="calc_c2_z">20.0</span>) = <span class="f-num" id="calc_rel_z">-12.50</span>
+          </div>
+        </div>
+
+        <div class="formula-block">
+          <div class="f-comment">// 2. Projection onto axes via Dot Product:</div>
+          
+          <div class="formula-row">
+            <span class="f-accent-r">X_cam</span> = rel &middot; Right
+          </div>
+          <div class="formula-row" style="font-size:0.73rem;">
+            = (<span id="calc_rx_term">-12.5 * 0.71</span>) + (<span id="calc_ry_term">27.5 * 0.71</span>) + (<span id="calc_rz_term">0</span>)
+          </div>
+          <div class="formula-row">
+            = <span class="f-highlight" id="calc_xcam_val">10.61</span> 
+            <span class="f-comment" id="calc_xcam_desc">(Right of camera lens)</span>
+          </div>
+
+          <div style="height: 6px;"></div>
+
+          <div class="formula-row">
+            <span class="f-accent-u">Y_cam</span> = rel &middot; TrueUp
+          </div>
+          <div class="formula-row" style="font-size:0.73rem;">
+            = (<span id="calc_ux_term">-12.5 * -0.41</span>) + (<span id="calc_uy_term">27.5 * 0.41</span>) + (<span id="calc_uz_term">-12.5 * 0.82</span>)
+          </div>
+          <div class="formula-row">
+            = <span class="f-highlight" id="calc_ycam_val">6.12</span>
+            <span class="f-comment" id="calc_ycam_desc">(Above camera lens)</span>
+          </div>
+
+          <div style="height: 6px;"></div>
+
+          <div class="formula-row">
+            <span class="f-accent-f">Z_cam</span> = rel &middot; Forward (Depth along line of sight)
+          </div>
+          <div class="formula-row" style="font-size:0.73rem;">
+            = (<span id="calc_fx_term">-12.5 * -0.58</span>) + (<span id="calc_fy_term">27.5 * 0.58</span>) + (<span id="calc_fz_term">-12.5 * -0.58</span>)
+          </div>
+          <div class="formula-row">
+            = <span class="f-highlight" id="calc_zcam_val">30.31</span>
+            <span class="f-comment" id="calc_zcam_desc">(In FRONT of camera, depth 30.31)</span>
+          </div>
+        </div>
+
+        <div class="result-badge point">
+          <span>💡 Coordinates in Camera Space: 
+            <strong id="badge_cam_coords">(X_cam: 10.61, Y_cam: 6.12, Z_cam: 30.31)</strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- Theory Card 4: Perspective Projection to Canvas 2D -->
+      <div class="math-card">
+        <div class="math-card-header">
+          <div>
+            <span class="math-step-num">Step 3 — Perspective Projection</span>
+            <div class="math-card-title">4. Project onto 2D Canvas Screen (Pixels)</div>
+          </div>
+        </div>
+        <div class="math-card-desc">
+          Objects farther away appear smaller through perspective division (dividing by depth $Z_{\text{cam}}$) and scaling by focal length $f = \text{fov} = <span id="text_fov">450</span>$:
+        </div>
+
+        <!-- LaTeX Display for Step 3 -->
+        <div class="katex-display">
+          $$ X_{\text{screen}} = \frac{X_{\text{cam}} \cdot f}{Z_{\text{cam}}}, \quad Y_{\text{screen}} = \frac{Y_{\text{cam}} \cdot f}{Z_{\text{cam}}} \qquad \Longrightarrow \qquad \begin{cases} x_{\text{pixel}} = \frac{W}{2} + X_{\text{screen}} \\ y_{\text{pixel}} = \frac{H}{2} - Y_{\text{screen}} \end{cases} $$
+        </div>
+
+        <div class="formula-title">Live Calculation Breakdown:</div>
+
+        <div class="formula-block">
+          <div class="f-comment">// A. Relative screen coordinates from lens center:</div>
+          <div class="formula-row">
+            X_screen = (X_cam * f) / Z_cam 
+                     = (<span id="calc_x_cam_proj">10.61</span> * <span id="calc_fov_x">450</span>) / <span id="calc_z_cam_proj">30.31</span>
+                     = <span class="f-num" id="calc_x_screen">157.5</span> px
+          </div>
+          <div class="formula-row">
+            Y_screen = (Y_cam * f) / Z_cam 
+                     = (<span id="calc_y_cam_proj">6.12</span> * <span id="calc_fov_y">450</span>) / <span id="calc_z_cam_proj">30.31</span>
+                     = <span class="f-num" id="calc_y_screen">90.8</span> px
+          </div>
+
+          <div style="height: 6px;"></div>
+          <div class="f-comment">// B. Map to Canvas pixel coordinates (Canvas origin (0,0) is at top-left):</div>
+          <div class="formula-row">
+            pixel_x = (W / 2) + X_screen
+                    = (<span id="calc_cw_half">320</span>) + (<span id="calc_xs_val">157.5</span>)
+                    = <span class="f-highlight" id="calc_pixel_x">477.5</span> px
+          </div>
+          <div class="formula-row">
+            pixel_y = (H / 2) - Y_screen
+                    = (<span id="calc_ch_half">190</span>) - (<span id="calc_ys_val">90.8</span>)
+                    = <span class="f-highlight" id="calc_pixel_y">99.2</span> px
+          </div>
+        </div>
+
+        <div class="result-badge up">
+          <span>📐 The minus sign in <code>pixel_y = (H / 2) - Y_screen</code> is because Canvas Y points downward, while 3D camera Y points upward!</span>
+        </div>
+      </div>
+
+      <!-- Theory Card 5: View Matrix 4x4 -->
+      <div class="math-card">
+        <div class="math-card-header">
+          <div>
+            <span class="math-step-num">Linear Algebra Pipeline</span>
+            <div class="math-card-title">5. The 4&times;4 View Matrix (LookAt Matrix)</div>
+          </div>
+        </div>
+        <div class="math-card-desc">
+          In graphics APIs (OpenGL, DirectX, WebGL), the translation and basis rotation are combined into a single $4 \times 4$ affine transformation matrix:
+        </div>
+
+        <!-- LaTeX Display for Step 5 -->
+        <div class="katex-display">
+          $$ \mathbf{V} = \begin{bmatrix} r_x & r_y & r_z & -\mathbf{r} \cdot \mathbf{camPos} \\ u_x & u_y & u_z & -\mathbf{u} \cdot \mathbf{camPos} \\ f_x & f_y & f_z & -\mathbf{f} \cdot \mathbf{camPos} \\ 0 & 0 & 0 & 1 \end{bmatrix}, \qquad \begin{bmatrix} X_{\text{cam}} \\ Y_{\text{cam}} \\ Z_{\text{cam}} \\ 1 \end{bmatrix} = \mathbf{V} \begin{bmatrix} P_x \\ P_y \\ P_z \\ 1 \end{bmatrix} $$
+        </div>
+
+        <div class="formula-title">Live 4&times;4 Matrix Values:</div>
+
+        <div class="matrix-grid">
+          <div class="matrix-cell"><div class="matrix-header">Right.x</div><span id="m00">0.71</span></div>
+          <div class="matrix-cell"><div class="matrix-header">Right.y</div><span id="m01">0.71</span></div>
+          <div class="matrix-cell"><div class="matrix-header">Right.z</div><span id="m02">0.00</span></div>
+          <div class="matrix-cell" style="color:#f59e0b;"><div class="matrix-header">-dot(R,pos)</div><span id="m03">0.00</span></div>
+
+          <div class="matrix-cell"><div class="matrix-header">TrueUp.x</div><span id="m10">-0.41</span></div>
+          <div class="matrix-cell"><div class="matrix-header">TrueUp.y</div><span id="m11">0.41</span></div>
+          <div class="matrix-cell"><div class="matrix-header">TrueUp.z</div><span id="m12">0.82</span></div>
+          <div class="matrix-cell" style="color:#06b6d4;"><div class="matrix-header">-dot(U,pos)</div><span id="m13">-32.66</span></div>
+
+          <div class="matrix-cell"><div class="matrix-header">Forward.x</div><span id="m20">-0.58</span></div>
+          <div class="matrix-cell"><div class="matrix-header">Forward.y</div><span id="m21">0.58</span></div>
+          <div class="matrix-cell"><div class="matrix-header">Forward.z</div><span id="m22">-0.58</span></div>
+          <div class="matrix-cell" style="color:#d946ef;"><div class="matrix-header">-dot(F,pos)</div><span id="m23">34.64</span></div>
+
+          <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+          <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+          <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+          <div class="matrix-cell" style="color:#38bdf8; font-weight:700;">1.00</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    Computer Graphics Lab &mdash; Interactive 3D Camera Viewpoint &amp; Perspective Projection Simulator
+  </footer>
+
+  <script>
+    // --- Vector Operations Helper ---
+    class Vec3 {
+      constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }
+      add(v) { return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z); }
+      sub(v) { return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z); }
+      mul(s) { return new Vec3(this.x * s, this.y * s, this.z * s); }
+      dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+      cross(v) {
+        return new Vec3(
+          this.y * v.z - this.z * v.y,
+          this.z * v.x - this.x * v.z,
+          this.x * v.y - this.y * v.x
+        );
+      }
+      length() { return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z); }
+      normalize() {
+        const len = this.length();
+        if (len < 1e-6) return new Vec3(0, 0, 0);
+        return new Vec3(this.x / len, this.y / len, this.z / len);
+      }
+      clone() { return new Vec3(this.x, this.y, this.z); }
+    }
+
+    // --- State Variables ---
+    const state = {
+      camPos: new Vec3(20, -20, 20),
+      target: new Vec3(0, 0, 0),
+      worldUp: new Vec3(0, 0, 1),
+      fov: 450,
+      testPoint: new Vec3(7.5, 7.5, 7.5),
+      
+      // Auto orbit animation
+      isAutoOrbit: false,
+      orbitAngle: Math.atan2(-20, 20),
+      orbitRadius: Math.sqrt(20*20 + (-20)*(-20)),
+      orbitZ: 20,
+
+      // God's eye 3D view camera controls
+      godYaw: -0.65,
+      godPitch: 0.52,
+      godDist: 65,
+      godCenter: new Vec3(0, 0, 5),
+      isDraggingGod: false,
+      lastMouseX: 0,
+      lastMouseY: 0
+    };
+
+    // --- DOM Elements ---
+    const worldCanvas = document.getElementById('worldCanvas');
+    const worldCtx = worldCanvas.getContext('2d');
+    const screenCanvas = document.getElementById('screenCanvas');
+    const screenCtx = screenCanvas.getContext('2d');
+
+    // Sliders
+    const camXSlider = document.getElementById('camX');
+    const camYSlider = document.getElementById('camY');
+    const camZSlider = document.getElementById('camZ');
+    const targetZSlider = document.getElementById('targetZ');
+    const fovSlider = document.getElementById('fovSlider');
+    const ptXSlider = document.getElementById('ptX');
+    const ptYSlider = document.getElementById('ptY');
+    const ptZSlider = document.getElementById('ptZ');
+
+    // Value Labels
+    const valCamX = document.getElementById('valCamX');
+    const valCamY = document.getElementById('valCamY');
+    const valCamZ = document.getElementById('valCamZ');
+    const valTargetZ = document.getElementById('valTargetZ');
+    const valFov = document.getElementById('valFov');
+    const valPtX = document.getElementById('valPtX');
+    const valPtY = document.getElementById('valPtY');
+    const valPtZ = document.getElementById('valPtZ');
+
+    // Buttons
+    const btnAutoOrbit = document.getElementById('btnAutoOrbit');
+    const autoOrbitText = document.getElementById('autoOrbitText');
+    const btnResetAll = document.getElementById('btnResetAll');
+    const presetButtons = document.querySelectorAll('.pill-btn');
+
+    // --- KaTeX Equation Renderer ---
+    function renderMath() {
+      if (window.renderMathInElement) {
+        try {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        } catch (err) {
+          console.warn('KaTeX render error:', err);
+        }
+      } else {
+        setTimeout(renderMath, 150);
+      }
+    }
+
+    // --- Camera Calculations ---
+    function computeCameraFrame() {
+      // 1. Forward vector
+      const dir = state.target.sub(state.camPos);
+      const dirLen = dir.length();
+      const forward = dir.normalize();
+
+      // 2. Right vector: cross(forward, worldUp)
+      let rightRaw = forward.cross(state.worldUp);
+      let rLen = rightRaw.length();
+      
+      // Handle singularity if looking straight down/up along up vector
+      if (rLen < 1e-4) {
+        const altUp = new Vec3(0, 1, 0);
+        rightRaw = forward.cross(altUp);
+        rLen = rightRaw.length();
+      }
+      const right = rightRaw.normalize();
+
+      // 3. TrueUp vector: cross(right, forward)
+      const trueUp = right.cross(forward).normalize();
+
+      // 4. Transform Point P to Camera Space
+      const relP = state.testPoint.sub(state.camPos);
+      const xCam = relP.dot(right);
+      const yCam = relP.dot(trueUp);
+      const zCam = relP.dot(forward);
+
+      // 5. Perspective Projection to Screen Space
+      let xScreen = 0;
+      let yScreen = 0;
+      let pixelX = 0;
+      let pixelY = 0;
+      let isVisible = zCam > 0.05;
+
+      if (isVisible) {
+        xScreen = (xCam * state.fov) / zCam;
+        yScreen = (yCam * state.fov) / zCam;
+        pixelX = (screenCanvas.width / 2) + xScreen;
+        pixelY = (screenCanvas.height / 2) - yScreen;
+      }
+
+      return {
+        dir,
+        dirLen,
+        forward,
+        rightRaw,
+        right,
+        trueUp,
+        relP,
+        xCam,
+        yCam,
+        zCam,
+        xScreen,
+        yScreen,
+        pixelX,
+        pixelY,
+        isVisible
+      };
+    }
+
+    // --- Resize Canvas Helper ---
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      
+      const wRect = worldCanvas.parentElement.getBoundingClientRect();
+      worldCanvas.width = wRect.width * dpr;
+      worldCanvas.height = wRect.height * dpr;
+      worldCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const sRect = screenCanvas.parentElement.getBoundingClientRect();
+      screenCanvas.width = sRect.width * dpr;
+      screenCanvas.height = sRect.height * dpr;
+      screenCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      document.getElementById('hudResolution').textContent = `${Math.round(sRect.width)} × ${Math.round(sRect.height)} px`;
+    }
+
+    // --- 3D Projection for God's Eye World View ---
+    function projectGodView(p, w, h) {
+      const cx = p.x - state.godCenter.x;
+      const cy = p.y - state.godCenter.y;
+      const cz = p.z - state.godCenter.z;
+
+      // Yaw rotation around Z axis
+      const cosY = Math.cos(state.godYaw);
+      const sinY = Math.sin(state.godYaw);
+      const x1 = cx * cosY - cy * sinY;
+      const y1 = cx * sinY + cy * cosY;
+      const z1 = cz;
+
+      // Pitch rotation
+      const cosP = Math.cos(state.godPitch);
+      const sinP = Math.sin(state.godPitch);
+      const x2 = x1;
+      const y2 = y1 * cosP - z1 * sinP;
+      const z2 = y1 * sinP + z1 * cosP;
+
+      // Perspective divide for world viewer
+      const depth = z2 + state.godDist;
+      if (depth < 0.1) return { x: 0, y: 0, visible: false, depth };
+      
+      const fovScale = 480;
+      const scale = fovScale / depth;
+      return {
+        x: w / 2 + x2 * scale,
+        y: h / 2 - y2 * scale,
+        visible: true,
+        depth
+      };
+    }
+
+    // --- Draw Arrow in God View ---
+    function drawArrowGod(from, to, color, label, width = 2) {
+      const p1 = projectGodView(from, worldCanvas.parentElement.clientWidth, worldCanvas.parentElement.clientHeight);
+      const p2 = projectGodView(to, worldCanvas.parentElement.clientWidth, worldCanvas.parentElement.clientHeight);
+      if (!p1.visible || !p2.visible) return;
+
+      worldCtx.save();
+      worldCtx.strokeStyle = color;
+      worldCtx.fillStyle = color;
+      worldCtx.lineWidth = width;
+
+      worldCtx.beginPath();
+      worldCtx.moveTo(p1.x, p1.y);
+      worldCtx.lineTo(p2.x, p2.y);
+      worldCtx.stroke();
+
+      // Arrow head
+      const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+      const headLen = 8;
+      worldCtx.beginPath();
+      worldCtx.moveTo(p2.x, p2.y);
+      worldCtx.lineTo(p2.x - headLen * Math.cos(angle - Math.PI / 6), p2.y - headLen * Math.sin(angle - Math.PI / 6));
+      worldCtx.lineTo(p2.x - headLen * Math.cos(angle + Math.PI / 6), p2.y - headLen * Math.sin(angle + Math.PI / 6));
+      worldCtx.closePath();
+      worldCtx.fill();
+
+      if (label) {
+        worldCtx.font = '600 11px Fira Code';
+        worldCtx.fillText(label, p2.x + 8, p2.y + 4);
+      }
+      worldCtx.restore();
+    }
+
+    // --- Render God's Eye World View ---
+    function renderWorldView(frame) {
+      const w = worldCanvas.parentElement.clientWidth;
+      const h = worldCanvas.parentElement.clientHeight;
+      worldCtx.clearRect(0, 0, w, h);
+
+      // 1. Draw Grid Floor (Z = 0)
+      worldCtx.save();
+      worldCtx.strokeStyle = 'rgba(15, 23, 42, 0.08)';
+      worldCtx.lineWidth = 1;
+      const gridSize = 25;
+      const step = 5;
+      for (let x = -gridSize; x <= gridSize; x += step) {
+        const p1 = projectGodView(new Vec3(x, -gridSize, 0), w, h);
+        const p2 = projectGodView(new Vec3(x, gridSize, 0), w, h);
+        if (p1.visible && p2.visible) {
+          worldCtx.beginPath();
+          worldCtx.moveTo(p1.x, p1.y);
+          worldCtx.lineTo(p2.x, p2.y);
+          worldCtx.stroke();
+        }
+      }
+      for (let y = -gridSize; y <= gridSize; y += step) {
+        const p1 = projectGodView(new Vec3(-gridSize, y, 0), w, h);
+        const p2 = projectGodView(new Vec3(gridSize, y, 0), w, h);
+        if (p1.visible && p2.visible) {
+          worldCtx.beginPath();
+          worldCtx.moveTo(p1.x, p1.y);
+          worldCtx.lineTo(p2.x, p2.y);
+          worldCtx.stroke();
+        }
+      }
+      worldCtx.restore();
+
+      // 2. Draw World Origin & Axes
+      const origin = new Vec3(0, 0, 0);
+      drawArrowGod(origin, new Vec3(12, 0, 0), '#dc2626', '+X_world', 2);
+      drawArrowGod(origin, new Vec3(0, 12, 0), '#059669', '+Y_world', 2);
+      drawArrowGod(origin, new Vec3(0, 0, 12), '#2563eb', '+Z_world', 2);
+
+      // 3. Draw Target Point Marker
+      const ptTarget = projectGodView(state.target, w, h);
+      if (ptTarget.visible) {
+        worldCtx.save();
+        worldCtx.fillStyle = '#ca8a04';
+        worldCtx.beginPath();
+        worldCtx.arc(ptTarget.x, ptTarget.y, 5, 0, Math.PI * 2);
+        worldCtx.fill();
+        worldCtx.font = '600 11px Inter';
+        worldCtx.fillText('Target (0,0,0)', ptTarget.x + 8, ptTarget.y - 4);
+        worldCtx.restore();
+      }
+
+      // 4. Draw 3D Sample Cube (Bounding box around target or P)
+      const bMin = new Vec3(5, 5, 5);
+      const bMax = new Vec3(10, 10, 10);
+      const cubeVertices = [
+        new Vec3(bMin.x, bMin.y, bMin.z),
+        new Vec3(bMax.x, bMin.y, bMin.z),
+        new Vec3(bMax.x, bMax.y, bMin.z),
+        new Vec3(bMin.x, bMax.y, bMin.z),
+        new Vec3(bMin.x, bMin.y, bMax.z),
+        new Vec3(bMax.x, bMin.y, bMax.z),
+        new Vec3(bMax.x, bMax.y, bMax.z),
+        new Vec3(bMin.x, bMax.y, bMax.z)
+      ];
+      const cubeEdges = [
+        [0,1],[1,2],[2,3],[3,0],
+        [4,5],[5,6],[6,7],[7,4],
+        [0,4],[1,5],[2,6],[3,7]
+      ];
+
+      worldCtx.save();
+      worldCtx.strokeStyle = 'rgba(5, 150, 105, 0.55)';
+      worldCtx.lineWidth = 1.5;
+      for (const [i, j] of cubeEdges) {
+        const p1 = projectGodView(cubeVertices[i], w, h);
+        const p2 = projectGodView(cubeVertices[j], w, h);
+        if (p1.visible && p2.visible) {
+          worldCtx.beginPath();
+          worldCtx.moveTo(p1.x, p1.y);
+          worldCtx.lineTo(p2.x, p2.y);
+          worldCtx.stroke();
+        }
+      }
+      worldCtx.restore();
+
+      // 5. Draw Sightline (Camera -> Target)
+      const pCam = projectGodView(state.camPos, w, h);
+      if (pCam.visible && ptTarget.visible) {
+        worldCtx.save();
+        worldCtx.setLineDash([4, 4]);
+        worldCtx.strokeStyle = 'rgba(15, 23, 42, 0.35)';
+        worldCtx.beginPath();
+        worldCtx.moveTo(pCam.x, pCam.y);
+        worldCtx.lineTo(ptTarget.x, ptTarget.y);
+        worldCtx.stroke();
+        worldCtx.restore();
+      }
+
+      // 6. Draw Camera View Cone / Frustum in 3D
+      const frustumDist = 8;
+      const fw = 6;
+      const fh = 4.2;
+      const fCenter = state.camPos.add(frame.forward.mul(frustumDist));
+      const cTL = fCenter.sub(frame.right.mul(fw)).add(frame.trueUp.mul(fh));
+      const cTR = fCenter.add(frame.right.mul(fw)).add(frame.trueUp.mul(fh));
+      const cBR = fCenter.add(frame.right.mul(fw)).sub(frame.trueUp.mul(fh));
+      const cBL = fCenter.sub(frame.right.mul(fw)).sub(frame.trueUp.mul(fh));
+
+      const pFrust = [cTL, cTR, cBR, cBL].map(pt => projectGodView(pt, w, h));
+      if (pCam.visible && pFrust.every(p => p.visible)) {
+        worldCtx.save();
+        worldCtx.strokeStyle = 'rgba(192, 38, 211, 0.5)';
+        worldCtx.lineWidth = 1;
+        // Rays from camera eye to 4 corners
+        pFrust.forEach(corner => {
+          worldCtx.beginPath();
+          worldCtx.moveTo(pCam.x, pCam.y);
+          worldCtx.lineTo(corner.x, corner.y);
+          worldCtx.stroke();
+        });
+        // Screen rectangle
+        worldCtx.beginPath();
+        worldCtx.moveTo(pFrust[0].x, pFrust[0].y);
+        worldCtx.lineTo(pFrust[1].x, pFrust[1].y);
+        worldCtx.lineTo(pFrust[2].x, pFrust[2].y);
+        worldCtx.lineTo(pFrust[3].x, pFrust[3].y);
+        worldCtx.closePath();
+        worldCtx.fillStyle = 'rgba(192, 38, 211, 0.08)';
+        worldCtx.fill();
+        worldCtx.stroke();
+        worldCtx.restore();
+      }
+
+      // 7. Draw Camera 3 Local Axes (Right, TrueUp, Forward)
+      const axisLen = 7;
+      drawArrowGod(state.camPos, state.camPos.add(frame.forward.mul(axisLen * 1.3)), '#c026d3', 'Forward', 2.5);
+      drawArrowGod(state.camPos, state.camPos.add(frame.right.mul(axisLen)), '#d97706', 'Right', 2.5);
+      drawArrowGod(state.camPos, state.camPos.add(frame.trueUp.mul(axisLen)), '#0284c7', 'TrueUp', 2.5);
+
+      // Camera Body Icon/Point
+      if (pCam.visible) {
+        worldCtx.save();
+        worldCtx.fillStyle = '#0284c7';
+        worldCtx.shadowColor = 'rgba(2, 132, 199, 0.35)';
+        worldCtx.shadowBlur = 8;
+        worldCtx.beginPath();
+        worldCtx.arc(pCam.x, pCam.y, 6, 0, Math.PI * 2);
+        worldCtx.fill();
+        worldCtx.font = '700 12px Inter';
+        worldCtx.fillStyle = '#0369a1';
+        worldCtx.fillText('Camera', pCam.x + 10, pCam.y + 4);
+        worldCtx.restore();
+      }
+
+      // 8. Draw Test Point P in 3D
+      const ptPProj = projectGodView(state.testPoint, w, h);
+      if (ptPProj.visible) {
+        // Line from Camera to P (representing rel = P - camPos)
+        if (pCam.visible) {
+          worldCtx.save();
+          worldCtx.setLineDash([3, 3]);
+          worldCtx.strokeStyle = 'rgba(5, 150, 105, 0.45)';
+          worldCtx.beginPath();
+          worldCtx.moveTo(pCam.x, pCam.y);
+          worldCtx.lineTo(ptPProj.x, ptPProj.y);
+          worldCtx.stroke();
+          worldCtx.restore();
+        }
+
+        worldCtx.save();
+        worldCtx.fillStyle = '#059669';
+        worldCtx.shadowColor = 'rgba(5, 150, 105, 0.35)';
+        worldCtx.shadowBlur = 10;
+        worldCtx.beginPath();
+        worldCtx.arc(ptPProj.x, ptPProj.y, 6.5, 0, Math.PI * 2);
+        worldCtx.fill();
+
+        worldCtx.font = '600 11px Fira Code';
+        worldCtx.fillStyle = '#0f172a';
+        worldCtx.fillText(`P(${state.testPoint.x}, ${state.testPoint.y}, ${state.testPoint.z})`, ptPProj.x + 10, ptPProj.y - 4);
+        worldCtx.restore();
+      }
+    }
+
+    // --- Helper to project any 3D world point into Camera 2D Screen space ---
+    function projectToCamera(pt, frame, width, height) {
+      const rel = pt.sub(state.camPos);
+      const xCam = rel.dot(frame.right);
+      const yCam = rel.dot(frame.trueUp);
+      const zCam = rel.dot(frame.forward);
+
+      if (zCam <= 0.1) {
+        return { visible: false, zCam };
+      }
+
+      const xScreen = (xCam * state.fov) / zCam;
+      const yScreen = (yCam * state.fov) / zCam;
+      const px = (width / 2) + xScreen;
+      const py = (height / 2) - yScreen;
+
+      return {
+        visible: true,
+        xCam,
+        yCam,
+        zCam,
+        xScreen,
+        yScreen,
+        px,
+        py
+      };
+    }
+
+    // --- Render Camera Viewport (What Camera Sees) ---
+    function renderCameraScreen(frame) {
+      const w = screenCanvas.parentElement.clientWidth;
+      const h = screenCanvas.parentElement.clientHeight;
+      screenCtx.clearRect(0, 0, w, h);
+
+      // Background subtle gradient
+      const grad = screenCtx.createRadialGradient(w/2, h/2, 20, w/2, h/2, w/1.4);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#f1f5f9');
+      screenCtx.fillStyle = grad;
+      screenCtx.fillRect(0, 0, w, h);
+
+      // 1. Viewfinder Overlays
+      screenCtx.save();
+      // Rule of thirds lines
+      screenCtx.strokeStyle = 'rgba(15, 23, 42, 0.06)';
+      screenCtx.lineWidth = 1;
+      screenCtx.beginPath();
+      screenCtx.moveTo(w / 3, 0); screenCtx.lineTo(w / 3, h);
+      screenCtx.moveTo(2 * w / 3, 0); screenCtx.lineTo(2 * w / 3, h);
+      screenCtx.moveTo(0, h / 3); screenCtx.lineTo(w, h / 3);
+      screenCtx.moveTo(0, 2 * h / 3); screenCtx.lineTo(w, 2 * h / 3);
+      screenCtx.stroke();
+
+      // Center crosshair (Lens Center)
+      screenCtx.strokeStyle = 'rgba(202, 138, 4, 0.55)';
+      screenCtx.lineWidth = 1.2;
+      const chSize = 16;
+      screenCtx.beginPath();
+      screenCtx.moveTo(w / 2 - chSize, h / 2); screenCtx.lineTo(w / 2 + chSize, h / 2);
+      screenCtx.moveTo(w / 2, h / 2 - chSize); screenCtx.lineTo(w / 2, h / 2 + chSize);
+      screenCtx.stroke();
+      screenCtx.beginPath();
+      screenCtx.arc(w / 2, h / 2, 4, 0, Math.PI * 2);
+      screenCtx.stroke();
+      screenCtx.restore();
+
+      // 2. Draw Projected Ground Grid in Camera View
+      screenCtx.save();
+      screenCtx.strokeStyle = 'rgba(15, 23, 42, 0.06)';
+      screenCtx.lineWidth = 1;
+      const gridSize = 25;
+      const step = 5;
+      for (let x = -gridSize; x <= gridSize; x += step) {
+        const p1 = projectToCamera(new Vec3(x, -gridSize, 0), frame, w, h);
+        const p2 = projectToCamera(new Vec3(x, gridSize, 0), frame, w, h);
+        if (p1.visible && p2.visible) {
+          screenCtx.beginPath();
+          screenCtx.moveTo(p1.px, p1.py);
+          screenCtx.lineTo(p2.px, p2.py);
+          screenCtx.stroke();
+        }
+      }
+      for (let y = -gridSize; y <= gridSize; y += step) {
+        const p1 = projectToCamera(new Vec3(-gridSize, y, 0), frame, w, h);
+        const p2 = projectToCamera(new Vec3(gridSize, y, 0), frame, w, h);
+        if (p1.visible && p2.visible) {
+          screenCtx.beginPath();
+          screenCtx.moveTo(p1.px, p1.py);
+          screenCtx.lineTo(p2.px, p2.py);
+          screenCtx.stroke();
+        }
+      }
+      screenCtx.restore();
+
+      // 3. Draw Projected World Coordinate Axes
+      const pOrigin = projectToCamera(new Vec3(0, 0, 0), frame, w, h);
+      const pX = projectToCamera(new Vec3(10, 0, 0), frame, w, h);
+      const pY = projectToCamera(new Vec3(0, 10, 0), frame, w, h);
+      const pZ = projectToCamera(new Vec3(0, 0, 10), frame, w, h);
+
+      function drawProjAxis(pA, pB, color, label) {
+        if (!pA.visible || !pB.visible) return;
+        screenCtx.save();
+        screenCtx.strokeStyle = color;
+        screenCtx.lineWidth = 2.5;
+        screenCtx.beginPath();
+        screenCtx.moveTo(pA.px, pA.py);
+        screenCtx.lineTo(pB.px, pB.py);
+        screenCtx.stroke();
+
+        screenCtx.font = '600 11px Fira Code';
+        screenCtx.fillStyle = color;
+        screenCtx.fillText(label, pB.px + 6, pB.py + 4);
+        screenCtx.restore();
+      }
+
+      drawProjAxis(pOrigin, pX, '#dc2626', '+X');
+      drawProjAxis(pOrigin, pY, '#059669', '+Y');
+      drawProjAxis(pOrigin, pZ, '#2563eb', '+Z');
+
+      // 4. Draw Projected 3D Box
+      const bMin = new Vec3(5, 5, 5);
+      const bMax = new Vec3(10, 10, 10);
+      const cubeVertices = [
+        new Vec3(bMin.x, bMin.y, bMin.z),
+        new Vec3(bMax.x, bMin.y, bMin.z),
+        new Vec3(bMax.x, bMax.y, bMin.z),
+        new Vec3(bMin.x, bMax.y, bMin.z),
+        new Vec3(bMin.x, bMin.y, bMax.z),
+        new Vec3(bMax.x, bMin.y, bMax.z),
+        new Vec3(bMax.x, bMax.y, bMax.z),
+        new Vec3(bMin.x, bMax.y, bMax.z)
+      ];
+      const cubeEdges = [
+        [0,1],[1,2],[2,3],[3,0],
+        [4,5],[5,6],[6,7],[7,4],
+        [0,4],[1,5],[2,6],[3,7]
+      ];
+
+      const projVerts = cubeVertices.map(v => projectToCamera(v, frame, w, h));
+      screenCtx.save();
+      screenCtx.strokeStyle = 'rgba(5, 150, 105, 0.7)';
+      screenCtx.lineWidth = 1.8;
+      for (const [i, j] of cubeEdges) {
+        if (projVerts[i].visible && projVerts[j].visible) {
+          screenCtx.beginPath();
+          screenCtx.moveTo(projVerts[i].px, projVerts[i].py);
+          screenCtx.lineTo(projVerts[j].px, projVerts[j].py);
+          screenCtx.stroke();
+        }
+      }
+      screenCtx.restore();
+
+      // 5. Draw Projected Point P
+      const projP = projectToCamera(state.testPoint, frame, w, h);
+      const hudPointScreen = document.getElementById('hudPointScreen');
+      const hudDepthBadge = document.getElementById('hudDepthBadge');
+
+      if (projP.visible) {
+        // Point is in front of camera
+        screenCtx.save();
+
+        // Guide line from center (0,0) to Point P
+        screenCtx.setLineDash([3, 3]);
+        screenCtx.strokeStyle = 'rgba(5, 150, 105, 0.45)';
+        screenCtx.beginPath();
+        screenCtx.moveTo(w / 2, h / 2);
+        screenCtx.lineTo(projP.px, projP.py);
+        screenCtx.stroke();
+
+        // Glowing Point P
+        screenCtx.fillStyle = '#059669';
+        screenCtx.shadowColor = 'rgba(5, 150, 105, 0.4)';
+        screenCtx.shadowBlur = 12;
+        screenCtx.beginPath();
+        screenCtx.arc(projP.px, projP.py, 7, 0, Math.PI * 2);
+        screenCtx.fill();
+
+        // Concentric pulse ring
+        screenCtx.strokeStyle = '#059669';
+        screenCtx.lineWidth = 1.5;
+        screenCtx.beginPath();
+        screenCtx.arc(projP.px, projP.py, 11, 0, Math.PI * 2);
+        screenCtx.stroke();
+
+        // Coordinates Label
+        screenCtx.shadowBlur = 0;
+        screenCtx.font = '600 12px Fira Code';
+        screenCtx.fillStyle = '#0f172a';
+        const labelText = `P (${Math.round(projP.px)}, ${Math.round(projP.py)})`;
+        screenCtx.fillText(labelText, projP.px + 14, projP.py + 4);
+
+        screenCtx.font = '500 10px Fira Code';
+        screenCtx.fillStyle = '#475569';
+        screenCtx.fillText(`Z_cam: ${projP.zCam.toFixed(1)} units`, projP.px + 14, projP.py + 18);
+
+        screenCtx.restore();
+
+        hudPointScreen.textContent = `Pixel (${Math.round(projP.px)}, ${Math.round(projP.py)})`;
+        hudDepthBadge.style.color = '#059669';
+        hudDepthBadge.innerHTML = `Z_cam (Depth): <strong>${projP.zCam.toFixed(2)} units</strong>`;
+      } else {
+        // Point is behind camera!
+        screenCtx.save();
+        screenCtx.fillStyle = '#dc2626';
+        screenCtx.font = '600 13px Inter';
+        screenCtx.textAlign = 'center';
+        screenCtx.fillText('⚠️ POINT P IS BEHIND THE CAMERA (Z_cam ≤ 0) — CANNOT BE SEEN', w / 2, h / 2 + 60);
+        screenCtx.restore();
+
+        hudPointScreen.textContent = 'Off-screen (Behind Camera)';
+        hudDepthBadge.style.color = '#dc2626';
+        hudDepthBadge.innerHTML = `Z_cam: <strong style="color:#dc2626;">${projP.zCam.toFixed(2)} (Behind!)</strong>`;
+      }
+    }
+
+    // --- Update Dynamic Math Formulas & Numbers in HTML ---
+    function updateFormulaValues(frame) {
+      // Inputs
+      document.getElementById('hudCamPos').textContent = `(${state.camPos.x.toFixed(1)}, ${state.camPos.y.toFixed(1)}, ${state.camPos.z.toFixed(1)})`;
+      document.getElementById('hudTarget').textContent = `(${state.target.x.toFixed(1)}, ${state.target.y.toFixed(1)}, ${state.target.z.toFixed(1)})`;
+      document.getElementById('text_pt_p').textContent = `P = (${state.testPoint.x.toFixed(1)}, ${state.testPoint.y.toFixed(1)}, ${state.testPoint.z.toFixed(1)})`;
+      document.getElementById('text_fov').textContent = state.fov;
+
+      // Section 2: Forward
+      document.getElementById('calc_target_x').textContent = state.target.x.toFixed(1);
+      document.getElementById('calc_target_y').textContent = state.target.y.toFixed(1);
+      document.getElementById('calc_target_z').textContent = state.target.z.toFixed(1);
+
+      document.getElementById('calc_cam_x').textContent = state.camPos.x.toFixed(1);
+      document.getElementById('calc_cam_y').textContent = state.camPos.y.toFixed(1);
+      document.getElementById('calc_cam_z').textContent = state.camPos.z.toFixed(1);
+
+      document.getElementById('calc_dir_x').textContent = frame.dir.x.toFixed(2);
+      document.getElementById('calc_dir_y').textContent = frame.dir.y.toFixed(2);
+      document.getElementById('calc_dir_z').textContent = frame.dir.z.toFixed(2);
+      document.getElementById('calc_dir_len').textContent = frame.dirLen.toFixed(2);
+
+      document.getElementById('calc_forward_vec').textContent = 
+        `(${frame.forward.x.toFixed(2)}, ${frame.forward.y.toFixed(2)}, ${frame.forward.z.toFixed(2)})`;
+
+      // Section 2: Right
+      document.getElementById('calc_r_raw_x').textContent = frame.rightRaw.x.toFixed(2);
+      document.getElementById('calc_r_raw_y').textContent = frame.rightRaw.y.toFixed(2);
+      document.getElementById('calc_r_raw_z').textContent = frame.rightRaw.z.toFixed(2);
+      document.getElementById('calc_right_vec').textContent = 
+        `(${frame.right.x.toFixed(2)}, ${frame.right.y.toFixed(2)}, ${frame.right.z.toFixed(2)})`;
+
+      // Section 2: TrueUp
+      document.getElementById('calc_trueup_vec').textContent = 
+        `(${frame.trueUp.x.toFixed(2)}, ${frame.trueUp.y.toFixed(2)}, ${frame.trueUp.z.toFixed(2)})`;
+
+      // Section 3: Rel
+      document.getElementById('calc_p_x').textContent = state.testPoint.x.toFixed(1);
+      document.getElementById('calc_p_y').textContent = state.testPoint.y.toFixed(1);
+      document.getElementById('calc_p_z').textContent = state.testPoint.z.toFixed(1);
+
+      document.getElementById('calc_c2_x').textContent = state.camPos.x.toFixed(1);
+      document.getElementById('calc_c2_y').textContent = state.camPos.y.toFixed(1);
+      document.getElementById('calc_c2_z').textContent = state.camPos.z.toFixed(1);
+
+      document.getElementById('calc_rel_x').textContent = frame.relP.x.toFixed(2);
+      document.getElementById('calc_rel_y').textContent = frame.relP.y.toFixed(2);
+      document.getElementById('calc_rel_z').textContent = frame.relP.z.toFixed(2);
+
+      // Section 3: Dot Products
+      document.getElementById('calc_rx_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.right.x.toFixed(2)}`;
+      document.getElementById('calc_ry_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.right.y.toFixed(2)}`;
+      document.getElementById('calc_rz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.right.z.toFixed(2)}`;
+      document.getElementById('calc_xcam_val').textContent = frame.xCam.toFixed(2);
+      document.getElementById('calc_xcam_desc').textContent = frame.xCam >= 0 ? '(Right of camera lens)' : '(Left of camera lens)';
+
+      document.getElementById('calc_ux_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.trueUp.x.toFixed(2)}`;
+      document.getElementById('calc_uy_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.trueUp.y.toFixed(2)}`;
+      document.getElementById('calc_uz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.trueUp.z.toFixed(2)}`;
+      document.getElementById('calc_ycam_val').textContent = frame.yCam.toFixed(2);
+      document.getElementById('calc_ycam_desc').textContent = frame.yCam >= 0 ? '(Above camera lens)' : '(Below camera lens)';
+
+      document.getElementById('calc_fx_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.forward.x.toFixed(2)}`;
+      document.getElementById('calc_fy_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.forward.y.toFixed(2)}`;
+      document.getElementById('calc_fz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.forward.z.toFixed(2)}`;
+      document.getElementById('calc_zcam_val').textContent = frame.zCam.toFixed(2);
+      document.getElementById('calc_zcam_desc').textContent = frame.zCam > 0 ? `(In FRONT of camera, depth ${frame.zCam.toFixed(2)})` : `(BEHIND camera lens!)`;
+
+      document.getElementById('badge_cam_coords').textContent = 
+        `(X_cam: ${frame.xCam.toFixed(2)}, Y_cam: ${frame.yCam.toFixed(2)}, Z_cam: ${frame.zCam.toFixed(2)})`;
+
+      // Section 4: Projection
+      document.getElementById('calc_x_cam_proj').textContent = frame.xCam.toFixed(2);
+      document.getElementById('calc_y_cam_proj').textContent = frame.yCam.toFixed(2);
+      document.getElementById('calc_z_cam_proj').textContent = frame.zCam.toFixed(2);
+      document.getElementById('calc_fov_x').textContent = state.fov;
+      document.getElementById('calc_fov_y').textContent = state.fov;
+
+      document.getElementById('calc_x_screen').textContent = frame.xScreen.toFixed(1);
+      document.getElementById('calc_y_screen').textContent = frame.yScreen.toFixed(1);
+
+      const sW = screenCanvas.parentElement.clientWidth;
+      const sH = screenCanvas.parentElement.clientHeight;
+      document.getElementById('calc_cw_half').textContent = (sW / 2).toFixed(0);
+      document.getElementById('calc_ch_half').textContent = (sH / 2).toFixed(0);
+      document.getElementById('calc_xs_val').textContent = frame.xScreen.toFixed(1);
+      document.getElementById('calc_ys_val').textContent = frame.yScreen.toFixed(1);
+
+      document.getElementById('calc_pixel_x').textContent = frame.pixelX.toFixed(1);
+      document.getElementById('calc_pixel_y').textContent = frame.pixelY.toFixed(1);
+
+      // Section 5: View Matrix 4x4
+      document.getElementById('m00').textContent = frame.right.x.toFixed(2);
+      document.getElementById('m01').textContent = frame.right.y.toFixed(2);
+      document.getElementById('m02').textContent = frame.right.z.toFixed(2);
+      document.getElementById('m03').textContent = (-frame.right.dot(state.camPos)).toFixed(2);
+
+      document.getElementById('m10').textContent = frame.trueUp.x.toFixed(2);
+      document.getElementById('m11').textContent = frame.trueUp.y.toFixed(2);
+      document.getElementById('m12').textContent = frame.trueUp.z.toFixed(2);
+      document.getElementById('m13').textContent = (-frame.trueUp.dot(state.camPos)).toFixed(2);
+
+      document.getElementById('m20').textContent = frame.forward.x.toFixed(2);
+      document.getElementById('m21').textContent = frame.forward.y.toFixed(2);
+      document.getElementById('m22').textContent = frame.forward.z.toFixed(2);
+      document.getElementById('m23').textContent = (-frame.forward.dot(state.camPos)).toFixed(2);
+    }
+
+    // --- Main Render Loop ---
+    function update() {
+      const frame = computeCameraFrame();
+      renderWorldView(frame);
+      renderCameraScreen(frame);
+      updateFormulaValues(frame);
+    }
+
+    // --- Animation Loop ---
+    function animate() {
+      if (state.isAutoOrbit) {
+        state.orbitAngle += 0.008;
+        state.camPos.x = state.orbitRadius * Math.cos(state.orbitAngle);
+        state.camPos.y = state.orbitRadius * Math.sin(state.orbitAngle);
+
+        // Sync slider values
+        camXSlider.value = state.camPos.x;
+        camYSlider.value = state.camPos.y;
+        valCamX.textContent = state.camPos.x.toFixed(1);
+        valCamY.textContent = state.camPos.y.toFixed(1);
+      }
+      update();
+      requestAnimationFrame(animate);
+    }
+
+    // --- Event Listeners: Sliders ---
+    camXSlider.addEventListener('input', (e) => {
+      state.camPos.x = parseFloat(e.target.value);
+      valCamX.textContent = state.camPos.x.toFixed(1);
+      state.orbitRadius = Math.sqrt(state.camPos.x**2 + state.camPos.y**2);
+      state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+      clearActivePreset();
+    });
+
+    camYSlider.addEventListener('input', (e) => {
+      state.camPos.y = parseFloat(e.target.value);
+      valCamY.textContent = state.camPos.y.toFixed(1);
+      state.orbitRadius = Math.sqrt(state.camPos.x**2 + state.camPos.y**2);
+      state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+      clearActivePreset();
+    });
+
+    camZSlider.addEventListener('input', (e) => {
+      state.camPos.z = parseFloat(e.target.value);
+      valCamZ.textContent = state.camPos.z.toFixed(1);
+      clearActivePreset();
+    });
+
+    targetZSlider.addEventListener('input', (e) => {
+      state.target.z = parseFloat(e.target.value);
+      valTargetZ.textContent = state.target.z.toFixed(1);
+    });
+
+    fovSlider.addEventListener('input', (e) => {
+      state.fov = parseInt(e.target.value);
+      valFov.textContent = state.fov;
+    });
+
+    ptXSlider.addEventListener('input', (e) => {
+      state.testPoint.x = parseFloat(e.target.value);
+      valPtX.textContent = state.testPoint.x.toFixed(1);
+    });
+
+    ptYSlider.addEventListener('input', (e) => {
+      state.testPoint.y = parseFloat(e.target.value);
+      valPtY.textContent = state.testPoint.y.toFixed(1);
+    });
+
+    ptZSlider.addEventListener('input', (e) => {
+      state.testPoint.z = parseFloat(e.target.value);
+      valPtZ.textContent = state.testPoint.z.toFixed(1);
+    });
+
+    function clearActivePreset() {
+      presetButtons.forEach(btn => btn.classList.remove('active'));
+    }
+
+    // --- Preset Viewpoints ---
+    const presets = {
+      default: { cam: new Vec3(20, -20, 20), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+      front:   { cam: new Vec3(0, -32, 5),   target: new Vec3(0, 0, 5), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+      top:     { cam: new Vec3(0.01, -0.01, 35), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+      isometric: { cam: new Vec3(25, -25, 25), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 400 },
+      side:    { cam: new Vec3(32, 0, 5),    target: new Vec3(0, 0, 5), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+      close:   { cam: new Vec3(14, -10, 14), target: new Vec3(7.5, 7.5, 7.5), pt: new Vec3(7.5, 7.5, 7.5), fov: 500 }
+    };
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        clearActivePreset();
+        btn.classList.add('active');
+        const p = presets[btn.dataset.preset];
+        if (p) {
+          state.camPos = p.cam.clone();
+          state.target = p.target.clone();
+          state.testPoint = p.pt.clone();
+          state.fov = p.fov;
+
+          // Update inputs
+          camXSlider.value = state.camPos.x;
+          camYSlider.value = state.camPos.y;
+          camZSlider.value = state.camPos.z;
+          targetZSlider.value = state.target.z;
+          fovSlider.value = state.fov;
+          ptXSlider.value = state.testPoint.x;
+          ptYSlider.value = state.testPoint.y;
+          ptZSlider.value = state.testPoint.z;
+
+          valCamX.textContent = state.camPos.x.toFixed(1);
+          valCamY.textContent = state.camPos.y.toFixed(1);
+          valCamZ.textContent = state.camPos.z.toFixed(1);
+          valTargetZ.textContent = state.target.z.toFixed(1);
+          valFov.textContent = state.fov;
+          valPtX.textContent = state.testPoint.x.toFixed(1);
+          valPtY.textContent = state.testPoint.y.toFixed(1);
+          valPtZ.textContent = state.testPoint.z.toFixed(1);
+
+          state.orbitRadius = Math.sqrt(state.camPos.x**2 + state.camPos.y**2);
+          state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+        }
+      });
+    });
+
+    // --- Auto-Orbit Toggle ---
+    btnAutoOrbit.addEventListener('click', () => {
+      state.isAutoOrbit = !state.isAutoOrbit;
+      btnAutoOrbit.classList.toggle('btn-active', state.isAutoOrbit);
+      autoOrbitText.textContent = state.isAutoOrbit ? 'Stop Orbit' : 'Auto-Orbit Camera';
+    });
+
+    // --- Reset Button ---
+    btnResetAll.addEventListener('click', () => {
+      document.querySelector('[data-preset="default"]').click();
+      state.isAutoOrbit = false;
+      btnAutoOrbit.classList.remove('btn-active');
+      autoOrbitText.textContent = 'Auto-Orbit Camera';
+      state.godYaw = -0.65;
+      state.godPitch = 0.52;
+      state.godDist = 65;
+    });
+
+    // --- Mouse Orbit Controls for God's Eye Canvas ---
+    const worldWrapper = document.getElementById('worldCanvasWrapper');
+    worldWrapper.addEventListener('mousedown', (e) => {
+      state.isDraggingGod = true;
+      state.lastMouseX = e.clientX;
+      state.lastMouseY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!state.isDraggingGod) return;
+      const dx = e.clientX - state.lastMouseX;
+      const dy = e.clientY - state.lastMouseY;
+      state.lastMouseX = e.clientX;
+      state.lastMouseY = e.clientY;
+
+      state.godYaw += dx * 0.008;
+      state.godPitch += dy * 0.008;
+
+      // Clamp pitch to avoid inversion
+      state.godPitch = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, state.godPitch));
+    });
+
+    window.addEventListener('mouseup', () => {
+      state.isDraggingGod = false;
+    });
+
+    worldWrapper.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      state.godDist += e.deltaY * 0.05;
+      state.godDist = Math.max(25, Math.min(150, state.godDist));
+    }, { passive: false });
+
+    // Handle Window Resize
+    window.addEventListener('resize', resizeCanvases);
+
+    // Initial setup
+    resizeCanvases();
+    renderMath();
+    animate();
+  </script>
+</body>
+</html>

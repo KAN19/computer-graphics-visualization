@@ -1,0 +1,3584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Computer Graphics &amp; Visualization Lab</title>
+
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for crisp LaTeX equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #f1f5f9;
+      --border-subtle: #e2e8f0;
+      --border-focus: rgba(2, 132, 199, 0.5);
+
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      /* Camera Axes Colors */
+      --color-forward: #c026d3;
+      --color-right: #d97706;
+      --color-up: #0284c7;
+
+      /* World Axes Colors */
+      --world-x: #dc2626;
+      --world-y: #059669;
+      --world-z: #2563eb;
+
+      /* Point P Accent */
+      --color-point: #059669;
+      --color-target: #ca8a04;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background: #f0f2f5;
+      color: #1e293b;
+    }
+
+    /* =========================================================================
+       GLOBAL PROBLEM SWITCHER BAR
+       ========================================================================= */
+    .global-switcher-bar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .switcher-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #1e293b;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .switcher-badge {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .switcher-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .switcher-control label {
+      color: #475569;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .problem-select {
+      background: #f8fafc;
+      color: #1e293b;
+      border: 1.5px solid #0284c7;
+      border-radius: 8px;
+      padding: 8px 36px 8px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: all 0.2s ease;
+    }
+
+    .problem-select:hover,
+    .problem-select:focus {
+      background-color: #f1f5f9;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    .problem-screen {
+      display: none;
+      flex: 1;
+    }
+
+    .problem-screen.active {
+      display: flex;
+    }
+
+    /* =========================================================================
+       SCREEN 1: MATHEMATICAL TO GRAPHICAL COORDINATE CONVERTER (coordinate.html)
+       ========================================================================= */
+    #screen-coordinate {
+      background: #f0f2f5;
+      color: #2c3e50;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      justify-content: center;
+      align-items: center;
+      min-height: calc(100vh - 54px);
+      padding: 20px;
+    }
+
+    #screen-coordinate .container {
+      display: flex;
+      gap: 24px;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #screen-coordinate .panel {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    #screen-coordinate .panel h3 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 18px;
+    }
+
+    #screen-coordinate .panel p {
+      margin: 0;
+      font-size: 13px;
+      color: #7f8c8d;
+      line-height: 1.4;
+    }
+
+    #screen-coordinate .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #screen-coordinate .input-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #34495e;
+    }
+
+    #screen-coordinate .input-group input,
+    #screen-coordinate .input-group select {
+      padding: 8px 12px;
+      border: 1.5px solid #dcdde1;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fff;
+      color: #2c3e50;
+    }
+
+    #screen-coordinate .input-group input:focus,
+    #screen-coordinate .input-group select:focus {
+      border-color: #2980b9;
+    }
+
+    #screen-coordinate .result-box {
+      background: #f8f9fa;
+      border: 1.5px solid #e9ecef;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #screen-coordinate .result-box .formula {
+      font-family: monospace;
+      color: #2c3e50;
+      background: #eaeded;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 6px 0;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    #screen-coordinate .result-box .final-res {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #ccc;
+      color: #2980b9;
+      font-size: 15px;
+    }
+
+    #screen-coordinate .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    #screen-coordinate .quick-buttons button {
+      flex: 1 1 45%;
+      padding: 6px 8px;
+      background: #edf2f7;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    #screen-coordinate .quick-buttons button:hover {
+      background: #e2e8f0;
+      border-color: #a0aec0;
+    }
+
+    #screen-coordinate .legend-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      background: #fdfefe;
+      border: 1px solid #edf2f7;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    #screen-coordinate .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #screen-coordinate .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    #screen-coordinate canvas {
+      border: 2px solid #2c3e50;
+      border-radius: 4px;
+      background: white;
+      display: block;
+      width: 600px;
+      height: 600px;
+    }
+
+    /* =========================================================================
+       SCREEN 2: CAMERA COORDINATE SYSTEM & 3D VIEWPOINT (camera_viewpoint_lab.html)
+       ========================================================================= */
+    #screen-camera {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      flex-direction: column;
+      min-height: calc(100vh - 54px);
+    }
+
+    #screen-camera .katex {
+      font-size: 1.05em;
+      color: #1e293b;
+    }
+
+    #screen-camera .katex-display {
+      margin: 8px 0 12px 0 !important;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    #screen-camera .math-card .katex {
+      font-size: 0.96em;
+    }
+
+    #screen-camera header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #screen-camera .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #screen-camera .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      color: #fff;
+    }
+
+    #screen-camera .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+    }
+
+    #screen-camera .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    #screen-camera .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #screen-camera .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #screen-camera .btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    #screen-camera .btn-active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+
+    #screen-camera .app-container {
+      display: grid;
+      grid-template-columns: minmax(500px, 1.15fr) minmax(420px, 1fr);
+      gap: 18px;
+      padding: 18px 24px;
+      flex: 1;
+      max-width: 1920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1200px) {
+      #screen-camera .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    #screen-camera .viewport-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #screen-camera .viewport-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+      position: relative;
+    }
+
+    #screen-camera .viewport-header {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #screen-camera .viewport-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #screen-camera .viewport-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    #screen-camera .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #screen-camera .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    #screen-camera .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #ffffff;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    #screen-camera .canvas-wrapper:active {
+      cursor: grabbing;
+    }
+
+    #screen-camera .canvas-wrapper.no-drag {
+      cursor: default;
+    }
+
+    #screen-camera canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #screen-camera .viewport-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #screen-camera .hud-badge {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-muted);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+
+    #screen-camera .hud-badge strong {
+      color: #0f172a;
+    }
+
+    #screen-camera .hud-bottom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      pointer-events: none;
+      font-size: 0.72rem;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    #screen-camera .math-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    #screen-camera .math-col::-webkit-scrollbar {
+      width: 6px;
+    }
+    #screen-camera .math-col::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #screen-camera .math-col::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    #screen-camera .math-col::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    #screen-camera .controls-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    #screen-camera .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    #screen-camera .preset-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    #screen-camera .pill-btn {
+      font-size: 0.75rem;
+      padding: 5px 11px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    #screen-camera .pill-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    #screen-camera .pill-btn.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    #screen-camera .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    #screen-camera .slider-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 65px;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+
+    #screen-camera .slider-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    #screen-camera .slider-tag {
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    #screen-camera .slider-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: right;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(2, 132, 199, 0.2);
+    }
+
+    #screen-camera input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    #screen-camera input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+      transition: transform 0.1s ease;
+    }
+
+    #screen-camera input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    #screen-camera .math-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px 18px;
+      position: relative;
+      transition: border-color 0.2s ease;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    }
+
+    #screen-camera .math-card:hover {
+      border-color: #cbd5e1;
+    }
+
+    #screen-camera .math-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    #screen-camera .math-step-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    #screen-camera .math-card-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    #screen-camera .math-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    #screen-camera .formula-title {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #screen-camera .formula-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    #screen-camera .formula-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      margin: 4px 0;
+    }
+
+    #screen-camera .f-comment {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    #screen-camera .f-var {
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    #screen-camera .f-accent-f {
+      color: var(--color-forward);
+      font-weight: 600;
+    }
+
+    #screen-camera .f-accent-r {
+      color: var(--color-right);
+      font-weight: 600;
+    }
+
+    #screen-camera .f-accent-u {
+      color: var(--color-up);
+      font-weight: 600;
+    }
+
+    #screen-camera .f-accent-p {
+      color: var(--color-point);
+      font-weight: 600;
+    }
+
+    #screen-camera .f-num {
+      color: #b45309;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    #screen-camera .f-highlight {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+
+    #screen-camera .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border-left: 3px solid #0284c7;
+      font-size: 0.78rem;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    #screen-camera .result-badge.right {
+      border-color: var(--color-right);
+    }
+
+    #screen-camera .result-badge.up {
+      border-color: var(--color-up);
+    }
+
+    #screen-camera .result-badge.forward {
+      border-color: var(--color-forward);
+    }
+
+    #screen-camera .result-badge.point {
+      border-color: var(--color-point);
+    }
+
+    #screen-camera .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    #screen-camera .matrix-cell {
+      padding: 6px 2px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-weight: 500;
+      color: #1e293b;
+    }
+
+    #screen-camera .matrix-header {
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      padding-bottom: 2px;
+    }
+
+    #screen-camera footer {
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+
+    /* =========================================================================
+       SCREENS 2, 3 & 4: 2D VECTOR, COMPLEX DERIVATION & ITERATION LABS
+       ========================================================================= */
+    #screen-vector-2d,
+    #screen-complex-derivation,
+    #screen-iteration {
+      background: #f0f2f5;
+      color: #1e293b;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: calc(100vh - 54px);
+      padding: 24px;
+    }
+
+    .lab2d-layout {
+      display: flex;
+      gap: 24px;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+      align-items: flex-start;
+      max-width: 1280px;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .lab2d-sidebar {
+      flex: 1 1 480px;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .lab2d-canvas-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lab2d-canvas-col canvas {
+      border: 2px solid #2c3e50;
+      border-radius: 6px;
+      background: #ffffff;
+      display: block;
+      width: 600px;
+      height: 600px;
+    }
+
+    .lab2d-card {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .lab2d-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lab2d-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(2, 132, 199, 0.12);
+      color: #0284c7;
+    }
+
+    .vec-grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .vec-box {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .vec-box.vec-u {
+      border-left: 4px solid #2563eb;
+    }
+
+    .vec-box.vec-v {
+      border-left: 4px solid #059669;
+    }
+
+    .vec-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .vec-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .vec-row input[type="number"] {
+      width: 80px;
+      padding: 5px 8px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'Fira Code', monospace;
+      background: #e8f8f0; /* Spreadsheet green input feel */
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .wb-formula {
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      color: #1e293b;
+    }
+
+    .i2-pill {
+      display: inline-block;
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 0 5px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* Spreadsheet Table for Iteration Lab */
+    .sheet-table-wrap {
+      max-height: 270px;
+      overflow-y: auto;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Fira Code', monospace;
+      font-size: 11.5px;
+      text-align: center;
+    }
+
+    .sheet-table th {
+      position: sticky;
+      top: 0;
+      background: #f1f5f9;
+      color: #334155;
+      padding: 7px 6px;
+      border-bottom: 1.5px solid #cbd5e1;
+      font-weight: 700;
+    }
+
+    .sheet-table td {
+      padding: 6px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+
+    .sheet-table tr.active-row {
+      background: #eff6ff;
+      font-weight: 700;
+    }
+
+    .sheet-green {
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    .iter-controls-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .iter-btn {
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .iter-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .iter-btn.primary {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    .iter-btn.primary:hover {
+      background: #0369a1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================================
+       TOP SELECTION BAR
+       ========================================================================= -->
+  <nav class="global-switcher-bar">
+    <div class="switcher-left">
+      <span class="switcher-badge">CGV Lab</span>
+      <span>Computer Graphics &amp; Visualization</span>
+    </div>
+    <div class="switcher-control">
+      <label for="problemSelector">Select Problem:</label>
+      <select id="problemSelector" class="problem-select">
+        <option value="coordinate">1. Mathematical to Graphical Coordinate Converter (2D Canvas)</option>
+        <option value="vector-2d">2. 2D Vector Multiplication (Turning &amp; Stretching)</option>
+        <option value="complex-derivation">3. Complex Numbers: Explaining the Magic Formula (1, i, i&sup2; = -1)</option>
+        <option value="iteration">4. Complex Iteration Lab: f(z) = z&sup2; + c (Sequence &amp; Animation)</option>
+        <option value="camera">5. Camera Coordinate System &amp; 3D Viewpoint (LookAt)</option>
+      </select>
+    </div>
+  </nav>
+
+  <!-- =========================================================================
+       PROBLEM 1: MATHEMATICAL TO GRAPHICAL COORDINATE CONVERTER
+       ========================================================================= -->
+  <section id="screen-coordinate" class="problem-screen active">
+    <div class="container">
+      <!-- Control Panel -->
+      <div class="panel">
+        <h3>Formula Converter (Scale = 4)</h3>
+        <p>Graphical Max = <strong>600</strong>, Math Max = <strong>4</strong>.<br>Step = <code>(600 / 2) / 4 = 75px / unit</code>.</p>
+
+        <div class="quick-buttons">
+          <button type="button" onclick="setPoint(2, 0)">M(2, 0)</button>
+          <button type="button" onclick="setPoint(3, 1)">M(3, 1)</button>
+          <button type="button" onclick="setPoint(4, -4)">M(4, -4) Corner</button>
+          <button type="button" onclick="setPoint(-4, 4)">M(-4, 4) Corner</button>
+        </div>
+
+        <div class="input-group">
+          <label for="mathX">Mx (Mathematical X):</label>
+          <input type="number" id="mathX" value="3" step="0.5">
+        </div>
+
+        <div class="input-group">
+          <label for="mathY">My (Mathematical Y):</label>
+          <input type="number" id="mathY" value="1" step="0.5">
+        </div>
+
+        <!-- Live Calculation Box -->
+        <div class="result-box">
+          <div><strong>Inputs:</strong> Mx = <span id="lblMx">3</span>, My = <span id="lblMy">1</span></div>
+          <div style="margin-top: 6px;"><strong>Calculation:</strong></div>
+          <div class="formula">Gx = (600 / 2) / 4 * <span id="calcMx">3</span> + 300<br>= <strong><span id="resGx">525</span></strong></div>
+          <div class="formula" id="formulaGy">Gy = 300 - (600 / 2) / 4 * <span id="calcMy">1</span><br>= <strong><span id="resGy">225</span></strong></div>
+          <div class="final-res">Graphical Point: <strong>(<span id="finalGx">525</span>, <span id="finalGy">225</span>)</strong></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-box">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #2980b9;"></div>
+            <span><strong>Top Border:</strong> +X Graphical (0 → 600)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span><strong>Left Border:</strong> +Y Graphical (0 → 600)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #7f8c8d;"></div>
+            <span><strong>Center Crosshair:</strong> Mathematical Axes (-4 → +4, +Y UP)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 600x600 Canvas -->
+      <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PROBLEM 2: 2D VECTOR MULTIPLICATION (TURNING & STRETCHING)
+       ========================================================================= -->
+  <section id="screen-vector-2d" class="problem-screen">
+    <div class="lab2d-layout">
+      <div class="lab2d-sidebar">
+        <div>
+          <h3 style="margin:0; color:#0f172a; font-size:19px;">2D Vector Multiplication: Turn &amp; Stretch</h3>
+          <p style="margin:4px 0 0 0; font-size:13px; color:#475569;">
+            Multiplying two 2D vectors <strong>u = [u₁, u₂]</strong> and <strong>v = [v₁, v₂]</strong> means <strong>adding their angles (&alpha; + &beta;)</strong> and <strong>multiplying their lengths (|u| &middot; |v|)</strong>.
+          </p>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">Presets</span> Try Turning &amp; Stretching</h4>
+          <div class="iter-controls-bar" style="margin-top:4px;">
+            <button type="button" class="iter-btn" onclick="setVec2DPreset(2, 0.5, 0.5, 1.5)">Turn + Stretch</button>
+            <button type="button" class="iter-btn" onclick="setVec2DPreset(2, 1, 0, 1)">Turn 90&deg; Counter-Clockwise</button>
+            <button type="button" class="iter-btn" onclick="setVec2DPreset(1, 1, 1, 1)">45&deg; + 45&deg; = 90&deg;</button>
+            <button type="button" class="iter-btn" onclick="setVec2DPreset(1.5, 0.5, 2, 0)">Stretch 2&times; (0&deg; Turn)</button>
+            <button type="button" class="iter-btn" onclick="setVec2DPreset(-1, 0, -1, 0)">180&deg; + 180&deg; = 360&deg;</button>
+          </div>
+        </div>
+
+        <!-- Vector Inputs -->
+        <div class="vec-grid-inputs">
+          <div class="vec-box vec-u">
+            <div style="font-weight:700; font-size:13px; color:#2563eb;">Vector u = [u₁, u₂]</div>
+            <div class="vec-row">
+              <label for="vecU1">u₁ (Math X):</label>
+              <input type="number" id="vecU1" value="2" step="0.25" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="vecU2">u₂ (Math Y):</label>
+              <input type="number" id="vecU2" value="0.5" step="0.25" min="-4" max="4">
+            </div>
+          </div>
+
+          <div class="vec-box vec-v">
+            <div style="font-weight:700; font-size:13px; color:#059669;">Vector v = [v₁, v₂]</div>
+            <div class="vec-row">
+              <label for="vecV1">v₁ (Math X):</label>
+              <input type="number" id="vecV1" value="0.5" step="0.25" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="vecV2">v₂ (Math Y):</label>
+              <input type="number" id="vecV2" value="1.5" step="0.25" min="-4" max="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Geometric Meaning (Turn & Stretch) -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">1. Geometry</span> How Turning &amp; Stretching Work</h4>
+          <div style="font-size:13px; color:#334155; display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;">
+              <strong>🔄 1. Turn (Add Angles &alpha; + &beta;):</strong><br>
+              &bull; Angle of <strong>u</strong> (&alpha;) = <strong style="color:#2563eb;"><span id="vcAngleU">14.0</span>&deg;</strong><br>
+              &bull; Angle of <strong>v</strong> (&beta;) = <strong style="color:#059669;"><span id="vcAngleV">71.6</span>&deg;</strong><br>
+              &rarr; Product Angle (&alpha; + &beta;) = <strong style="color:#9333ea;"><span id="vcAngleProd">85.6</span>&deg;</strong>
+            </div>
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;">
+              <strong>📏 2. Stretch (Multiply Lengths |u| &middot; |v|):</strong><br>
+              &bull; Length of <strong>u</strong> (|u| = &radic;(u₁&sup2; + u₂&sup2;)) = <strong style="color:#2563eb;"><span id="vcLenU">2.06</span></strong><br>
+              &bull; Length of <strong>v</strong> (|v| = &radic;(v₁&sup2; + v₂&sup2;)) = <strong style="color:#059669;"><span id="vcLenV">1.58</span></strong><br>
+              &rarr; Product Length (|u| &times; |v|) = <strong style="color:#9333ea;"><span id="vcLenProd">3.26</span></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Direct Magic Formula -->
+        <div class="lab2d-card" style="border-color:#c084fc; background:#faf5ff;">
+          <h4><span class="lab2d-badge" style="background:#f3e8ff; color:#7e22ce;">2. Direct Formula</span> Compute Product Coordinates Directly</h4>
+          <div style="font-size:12.5px; color:#334155;">
+            Using the magic coordinate formula directly on <code>[u₁, u₂]</code> and <code>[v₁, v₂]</code> (no trigonometry needed):
+          </div>
+          <div class="wb-formula">
+            <div><strong>New X</strong> = u₁·v₁ - u₂·v₂ = (<span id="vcCalcX">2 &times; 0.5 - 0.5 &times; 1.5</span>) = <strong style="color:#7e22ce;" id="vcProdX">0.25</strong></div>
+            <div style="margin-top:4px;"><strong>New Y</strong> = u₁·v₂ + u₂·v₁ = (<span id="vcCalcY">2 &times; 1.5 + 0.5 &times; 0.5</span>) = <strong style="color:#7e22ce;" id="vcProdY">3.25</strong></div>
+            <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #cbd5e1; color:#0284c7; font-weight:700;">
+              &rarr; Product Vector M(<span id="vcFinalM">0.25, 3.25</span>) &rArr; Canvas Pixel G(<span id="vcFinalG">318.8, 56.3</span>)
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="iter-btn" onclick="selectProblemScreen('complex-derivation')">
+              💡 Want to see why this Magic Formula works? Go to Page 3 &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: 600x600 Canvas -->
+      <div class="lab2d-canvas-col">
+        <canvas id="vec2dCanvas" width="600" height="600"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PROBLEM 3: COMPLEX NUMBERS & EXPLAINING THE MAGIC FORMULA (WHITEBOARD)
+       ========================================================================= -->
+  <section id="screen-complex-derivation" class="problem-screen">
+    <div class="lab2d-layout">
+      <div class="lab2d-sidebar">
+        <div>
+          <h3 style="margin:0; color:#0f172a; font-size:19px;">Where Does the Magic Formula Come From?</h3>
+          <p style="margin:4px 0 0 0; font-size:13px; color:#475569;">
+            Step-by-step whiteboard derivation using unit vectors <strong>e₁ &rarr; 1</strong> and <strong>e₂ &rarr; i</strong>, and why <span class="i2-pill">i&sup2; = -1</span>.
+          </p>
+        </div>
+
+        <!-- Interactive Mode Selector for Whiteboard Canvas -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">Interactive Whiteboard</span> Click a Step to Visualize on Canvas</h4>
+          <div class="iter-controls-bar" style="margin-top:4px;">
+            <button type="button" class="iter-btn" onclick="setComplexDemo(0, 1, 0, 1)">Step A: Why i &times; i = -1?</button>
+            <button type="button" class="iter-btn" onclick="setComplexDemo(2, 1, 0, 1)">Step B: Multiply (2 + 1i) &times; i</button>
+            <button type="button" class="iter-btn" onclick="setComplexDemo(2, 0.5, 0.5, 1.5)">Step C: Full Whiteboard Formula</button>
+          </div>
+        </div>
+
+        <!-- Inputs for Complex Numbers -->
+        <div class="vec-grid-inputs">
+          <div class="vec-box vec-u">
+            <div style="font-weight:700; font-size:13px; color:#2563eb;">u = u₁ + i·u₂</div>
+            <div class="vec-row">
+              <label for="cxU1">u₁ (Real):</label>
+              <input type="number" id="cxU1" value="0" step="0.5" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="cxU2">u₂ (Imag i):</label>
+              <input type="number" id="cxU2" value="1" step="0.5" min="-4" max="4">
+            </div>
+          </div>
+
+          <div class="vec-box vec-v">
+            <div style="font-weight:700; font-size:13px; color:#059669;">v = v₁ + i·v₂</div>
+            <div class="vec-row">
+              <label for="cxV1">v₁ (Real):</label>
+              <input type="number" id="cxV1" value="0" step="0.5" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="cxV2">v₂ (Imag i):</label>
+              <input type="number" id="cxV2" value="1" step="0.5" min="-4" max="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Renaming e1, e2 to 1, i -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">Step 1</span> Rename Guiding Arrows e₁ and e₂ to 1 and i</h4>
+          <div style="font-size:12.5px; color:#334155;">
+            &bull; Red arrow <strong style="color:#dc2626;">e₁ = [1, 0]</strong> (1 step right, 0&deg;) is called <strong>1</strong>.<br>
+            &bull; Black arrow <strong style="color:#0f172a;">e₂ = [0, 1]</strong> (1 step up, 90&deg;) is called <strong>i</strong>.<br>
+            &bull; Any 2D vector <code>[u₁, u₂] = u₁·e₁ + u₂·e₂</code> can now be written as a complex number: <code>u₁ + i·u₂</code>!
+          </div>
+        </div>
+
+        <!-- Step 2: Why i^2 = -1 -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">Step 2</span> Geometric Proof: Why is i&sup2; = -1?</h4>
+          <div style="font-size:12.5px; color:#334155;">
+            The arrow <strong>i</strong> has length <code>1</code> and angle <code>90&deg;</code> (pointing straight up).<br>
+            When we multiply <strong>i &times; i</strong> using our Turn &amp; Stretch rule:<br>
+            &bull; <strong>New Angle:</strong> 90&deg; + 90&deg; = 180&deg; (pointing straight left!).<br>
+            &bull; <strong>New Length:</strong> 1 &times; 1 = 1.<br>
+            &rarr; Length 1 pointing left is <code>[-1, 0]</code>, which is <strong>-1</strong>! Thus <span class="i2-pill">i&sup2; = -1</span>.
+          </div>
+        </div>
+
+        <!-- Step 3: FOIL Algebra Expansion -->
+        <div class="lab2d-card" style="border-color:#c084fc; background:#faf5ff;">
+          <h4><span class="lab2d-badge" style="background:#f3e8ff; color:#7e22ce;">Step 3</span> Multiply Brackets &amp; Group Real / Imaginary Parts</h4>
+          <div class="wb-formula">
+            <div>(<span id="cxExprU">0 + 1i</span>) &middot; (<span id="cxExprV">0 + 1i</span>)</div>
+            <div style="color:#475569; margin-top:3px;">= u₁v₁ + i·u₁v₂ + i·u₂v₁ + <span class="i2-pill">i&sup2;</span>·u₂v₂</div>
+            <div style="margin-top:3px;">= (<span id="cxT1">0.00</span>) + i(<span id="cxT2">0.00</span>) + i(<span id="cxT3">0.00</span>) + (<span class="i2-pill">-1</span>)(<span id="cxT4">1.00</span>)</div>
+            <div style="margin-top:5px; padding-top:5px; border-top:1px dashed #cbd5e1;">
+              <strong>Real Part (New X)</strong> = u₁v₁ - u₂v₂ = <strong style="color:#7e22ce;" id="cxResX">-1.00</strong><br>
+              <strong>Imag Part (New Y)</strong> = u₁v₂ + u₂v₁ = <strong style="color:#7e22ce;" id="cxResY">0.00</strong>
+            </div>
+            <div style="margin-top:4px; color:#0284c7; font-weight:700;">
+              &rarr; Result: <span id="cxFinalComplex">-1.00 + 0.00i</span> &rArr; Point [<span id="cxFinalVec">-1.00, 0.00</span>]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: 600x600 Canvas -->
+      <div class="lab2d-canvas-col">
+        <canvas id="complexDerivCanvas" width="600" height="600"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PROBLEM 3: COMPLEX ITERATION LAB f(z) = z² + c
+       ========================================================================= -->
+  <section id="screen-iteration" class="problem-screen">
+    <div class="lab2d-layout">
+      <div class="lab2d-sidebar">
+        <div>
+          <h3 style="margin:0; color:#0f172a; font-size:19px;">Repeated Iteration: f(z) = z&sup2; + c</h3>
+          <p style="margin:4px 0 0 0; font-size:13px; color:#475569;">
+            Start at <strong>z₀</strong>, square it using the rule <code>(x&sup2; - y&sup2;, 2xy)</code>, add constant <strong>c = (cₓ, cᵧ)</strong>, and feed the output back in as the next input!
+          </p>
+        </div>
+
+        <!-- Presets -->
+        <div class="lab2d-card">
+          <h4><span class="lab2d-badge">Presets</span> Lecture &amp; Orbit Examples</h4>
+          <div class="iter-controls-bar" style="margin-top:4px;">
+            <button type="button" class="iter-btn" onclick="setIterPreset(0, 0, -1, 0)">Lecture: z₀=(0,0), c=(-1,0)</button>
+            <button type="button" class="iter-btn" onclick="setIterPreset(0.5, 0.5, -0.5, 0.2)">Spiral Orbit</button>
+            <button type="button" class="iter-btn" onclick="setIterPreset(0.3, 0.6, -0.8, 0.15)">Chaotic Dance</button>
+            <button type="button" class="iter-btn" onclick="setIterPreset(0.5, 0.5, -1, 0)">z₀=(0.5,0.5), c=(-1,0)</button>
+          </div>
+        </div>
+
+        <!-- Green Spreadsheet Inputs -->
+        <div class="vec-grid-inputs">
+          <div class="vec-box vec-u">
+            <div style="font-weight:700; font-size:13px; color:#2563eb;">Start Point z₀ = (x₀, y₀)</div>
+            <div class="vec-row">
+              <label for="iterZ0X">x₀ (Green Cell):</label>
+              <input type="number" id="iterZ0X" value="0" step="0.1" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="iterZ0Y">y₀ (Green Cell):</label>
+              <input type="number" id="iterZ0Y" value="0" step="0.1" min="-4" max="4">
+            </div>
+          </div>
+
+          <div class="vec-box vec-v">
+            <div style="font-weight:700; font-size:13px; color:#059669;">Constant c = (cₓ, cᵧ)</div>
+            <div class="vec-row">
+              <label for="iterCX">cₓ (Green Cell):</label>
+              <input type="number" id="iterCX" value="-1" step="0.1" min="-4" max="4">
+            </div>
+            <div class="vec-row">
+              <label for="iterCY">cᵧ (Green Cell):</label>
+              <input type="number" id="iterCY" value="0" step="0.1" min="-4" max="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Animation Controls -->
+        <div class="lab2d-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong>Showing Steps:</strong> <span id="iterStepLabel" style="color:#0284c7; font-weight:700;">10</span> / 10
+            </div>
+            <div class="iter-controls-bar" style="margin-top:0;">
+              <button type="button" class="iter-btn primary" id="btnIterAnimate">&#9654; Animate 10 Steps</button>
+              <button type="button" class="iter-btn" id="btnIterStep">+1 Step</button>
+              <button type="button" class="iter-btn" id="btnIterShowAll">Show All 10</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spreadsheet Table -->
+        <div class="lab2d-card" style="padding:10px;">
+          <h4 style="margin-bottom:6px;"><span class="lab2d-badge">Spreadsheet</span> Starting Point &amp; Successive Outputs of f(z) = z&sup2; + c</h4>
+          <div style="font-size:11.5px; color:#475569; margin-bottom:6px;">
+            Each row's <strong style="color:#7e22ce;">Output f(zₙ) = zₙ&sup2; + c</strong> becomes the next row's <strong style="color:#0284c7;">Input zₙ₊₁</strong>:
+          </div>
+          <div class="sheet-table-wrap">
+            <table class="sheet-table">
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Input zₙ (x, y)</th>
+                  <th>Square zₙ&sup2; (x&sup2;-y&sup2;, 2xy)</th>
+                  <th>Output f(zₙ) = zₙ&sup2; + c</th>
+                  <th>Canvas (Gx, Gy)</th>
+                </tr>
+              </thead>
+              <tbody id="iterTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: 600x600 Canvas -->
+      <div class="lab2d-canvas-col">
+        <canvas id="iterCanvas" width="600" height="600"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       PROBLEM 2: CAMERA COORDINATE SYSTEM & 3D VIEWPOINT (LookAt)
+       ========================================================================= -->
+  <section id="screen-camera" class="problem-screen">
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <span class="brand-badge">Linear Algebra &amp; Graphics</span>
+        <div>
+          <h1>Camera Coordinate System &amp; 3D Viewpoint (LookAt)</h1>
+          <div class="brand-sub">Explore how 3D world space transforms through the camera lens using linear algebra</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" id="btnAutoOrbit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span id="autoOrbitText">Auto-Orbit Camera</span>
+        </button>
+        <button class="btn" id="btnResetAll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset All
+        </button>
+      </div>
+    </header>
+
+    <!-- App Main Content -->
+    <main class="app-container">
+      <!-- Left Column: Visual Displays -->
+      <div class="viewport-col">
+        <!-- Viewport 1: 3D God's Eye World View -->
+        <div class="viewport-card">
+          <div class="viewport-header">
+            <div class="viewport-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+              1. 3D World Space (God's Eye Overview)
+            </div>
+            <div class="viewport-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-forward);"></span> Forward</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-right);"></span> Right</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-up);"></span> TrueUp</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-point);"></span> Point P</span>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper" id="worldCanvasWrapper">
+            <canvas id="worldCanvas"></canvas>
+            <div class="viewport-overlay">
+              <div class="hud-badge">Camera Pos: <strong id="hudCamPos">(20.0, -20.0, 20.0)</strong></div>
+              <div class="hud-badge">Target Point: <strong id="hudTarget">(0.0, 0.0, 0.0)</strong></div>
+            </div>
+            <div class="hud-bottom-hint">Left-click &amp; drag to rotate 3D view | Mouse wheel to zoom</div>
+          </div>
+        </div>
+
+        <!-- Viewport 2: Camera Viewport (What the camera sees) -->
+        <div class="viewport-card">
+          <div class="viewport-header">
+            <div class="viewport-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              2. Camera Viewport (Screen / 2D Canvas Projection)
+            </div>
+            <div class="viewport-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#eab308;"></span> Lens Center (0,0)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-point);"></span> Projected Point P</span>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper no-drag" id="screenCanvasWrapper">
+            <canvas id="screenCanvas"></canvas>
+            <div class="viewport-overlay">
+              <div class="hud-badge">Canvas Viewport: <strong id="hudResolution">640 &times; 380 px</strong></div>
+              <div class="hud-badge">Screen Pos: <strong id="hudPointScreen">Pixel (0, 0)</strong></div>
+              <div class="hud-badge" id="hudDepthBadge" style="color:#10b981;">Z_cam (Depth): <strong>34.6</strong></div>
+            </div>
+            <div class="hud-bottom-hint">Simulates the camera sensor: what the camera actually sees in 2D</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Math & Controls -->
+      <div class="math-col">
+        <!-- Interactive Parameter Controls -->
+        <div class="controls-card">
+          <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            Position &amp; Viewpoint Controls
+          </div>
+
+          <!-- Presets -->
+          <div class="preset-pills">
+            <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; margin-right:4px;">Presets:</span>
+            <button class="pill-btn active" data-preset="default">Lecture (20, -20, 20)</button>
+            <button class="pill-btn" data-preset="front">Front View</button>
+            <button class="pill-btn" data-preset="top">Top-Down View</button>
+            <button class="pill-btn" data-preset="isometric">Isometric View</button>
+            <button class="pill-btn" data-preset="side">Side View</button>
+            <button class="pill-btn" data-preset="close">Close-up (Cube)</button>
+          </div>
+
+          <!-- Camera Position Sliders -->
+          <div class="slider-group">
+            <div style="font-size:0.8rem; font-weight:600; color:#38bdf8; margin-bottom:2px;">Camera Position ($\mathbf{camPos}$):</div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(239,68,68,0.2); color:#ef4444;">camPos.X</span></span>
+              <input type="range" id="camX" min="-40" max="40" step="0.5" value="20">
+              <span class="slider-val" id="valCamX">20.0</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">camPos.Y</span></span>
+              <input type="range" id="camY" min="-40" max="40" step="0.5" value="-20">
+              <span class="slider-val" id="valCamY">-20.0</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(59,130,246,0.2); color:#3b82f6;">camPos.Z</span></span>
+              <input type="range" id="camZ" min="-40" max="40" step="0.5" value="20">
+              <span class="slider-val" id="valCamZ">20.0</span>
+            </div>
+          </div>
+
+          <!-- Camera Target & FOV -->
+          <div class="slider-group">
+            <div style="font-size:0.8rem; font-weight:600; color:#eab308; margin-bottom:2px;">Target Point &amp; Focal Length ($f$ / FOV):</div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(234,179,8,0.2); color:#eab308;">Target.Z</span></span>
+              <input type="range" id="targetZ" min="-15" max="15" step="0.5" value="0">
+              <span class="slider-val" id="valTargetZ">0.0</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(168,85,247,0.2); color:#c084fc;">Focal Length (f)</span></span>
+              <input type="range" id="fovSlider" min="200" max="800" step="10" value="450">
+              <span class="slider-val" id="valFov">450</span>
+            </div>
+          </div>
+
+          <!-- Test Point P Sliders -->
+          <div class="slider-group" style="margin-bottom:0;">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--color-point); margin-bottom:2px;">Test Point P in World Space:</div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.X</span></span>
+              <input type="range" id="ptX" min="-15" max="15" step="0.5" value="7.5">
+              <span class="slider-val" id="valPtX">7.5</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.Y</span></span>
+              <input type="range" id="ptY" min="-15" max="15" step="0.5" value="7.5">
+              <span class="slider-val" id="valPtY">7.5</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label"><span class="slider-tag" style="background:rgba(16,185,129,0.2); color:#10b981;">P.Z</span></span>
+              <input type="range" id="ptZ" min="-15" max="15" step="0.5" value="7.5">
+              <span class="slider-val" id="valPtZ">7.5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theory Card 1: Core Concept -->
+        <div class="math-card">
+          <div class="math-card-header">
+            <div>
+              <span class="math-step-num">Core Concept</span>
+              <div class="math-card-title">1. What is Camera Viewpoint &amp; Transformation?</div>
+            </div>
+          </div>
+          <div class="math-card-desc">
+            &bull; <strong>World Coordinates:</strong> Fixed global reference frame with origin at <code>(0, 0, 0)</code>. 3D objects reside at absolute positions.<br>
+            &bull; <strong>Camera Coordinates:</strong> Observer-centric frame where origin is the camera eye position $\mathbf{camPos}$. The 2D screen cares only about whether an object lies to the <strong>Left / Right</strong> ($X_{\text{cam}}$), <strong>Up / Down</strong> ($Y_{\text{cam}}$), and <strong>Depth distance in front</strong> ($Z_{\text{cam}}$).<br>
+            &bull; <strong>Viewpoint Transformation:</strong> Translates the camera to the origin <code>(0, 0, 0)</code> and rotates the frame to align with the camera's sightline.
+          </div>
+        </div>
+
+        <!-- Theory Card 2: Compute Camera Basis -->
+        <div class="math-card">
+          <div class="math-card-header">
+            <div>
+              <span class="math-step-num">Step 1 — Linear Algebra</span>
+              <div class="math-card-title">2. Compute Camera Orthonormal Basis Vectors</div>
+            </div>
+          </div>
+          <div class="math-card-desc">
+            From 3 inputs: camera position $\mathbf{c} = \mathbf{camPos}$, target point $\mathbf{t} = \mathbf{target}$, and reference world up vector $\mathbf{up} = (0, 0, 1)$, we construct 3 mutually orthogonal unit vectors ($\mathbf{f}, \mathbf{r}, \mathbf{u}$):
+          </div>
+
+          <div class="katex-display">
+            $$ \mathbf{f} = \frac{\mathbf{t} - \mathbf{c}}{\|\mathbf{t} - \mathbf{c}\|}, \qquad \mathbf{r} = \frac{\mathbf{f} \times \mathbf{up}}{\|\mathbf{f} \times \mathbf{up}\|}, \qquad \mathbf{u} = \mathbf{r} \times \mathbf{f} $$
+          </div>
+
+          <div class="formula-title">Live Calculation Breakdown:</div>
+
+          <!-- Live Step: Forward -->
+          <div class="formula-block">
+            <div class="f-comment">// A. Forward axis (line of sight from camera to target)</div>
+            <div class="formula-row">
+              <span class="f-var">dir</span> = target - camPos
+            </div>
+            <div class="formula-row">
+              = (<span id="calc_target_x">0</span> - (<span id="calc_cam_x">20</span>), 
+                 <span id="calc_target_y">0</span> - (<span id="calc_cam_y">-20</span>), 
+                 <span id="calc_target_z">0</span> - (<span id="calc_cam_z">20</span>))
+            </div>
+            <div class="formula-row">
+              = (<span class="f-num" id="calc_dir_x">-20.00</span>, 
+                 <span class="f-num" id="calc_dir_y">20.00</span>, 
+                 <span class="f-num" id="calc_dir_z">-20.00</span>)
+            </div>
+            <div class="formula-row">
+              <span class="f-var">length</span> = &radic;((-20)&sup2; + 20&sup2; + (-20)&sup2;) = <span class="f-num" id="calc_dir_len">34.64</span>
+            </div>
+            <div class="formula-row">
+              <span class="f-accent-f">Forward</span> = dir / length = 
+              <span class="f-highlight" id="calc_forward_vec">(-0.58, 0.58, -0.58)</span>
+            </div>
+          </div>
+
+          <!-- Live Step: Right -->
+          <div class="formula-block">
+            <div class="f-comment">// B. Right axis — Right = normalize(Forward &times; up)</div>
+            <div class="formula-row">
+              Right_raw.x = Forward.y * up.z - Forward.z * up.y = <span class="f-num" id="calc_r_raw_x">0.58</span>
+            </div>
+            <div class="formula-row">
+              Right_raw.y = Forward.z * up.x - Forward.x * up.z = <span class="f-num" id="calc_r_raw_y">0.58</span>
+            </div>
+            <div class="formula-row">
+              Right_raw.z = Forward.x * up.y - Forward.y * up.x = <span class="f-num" id="calc_r_raw_z">0.00</span>
+            </div>
+            <div class="formula-row">
+              <span class="f-accent-r">Right</span> = Right_raw / length = 
+              <span class="f-highlight" id="calc_right_vec">(0.71, 0.71, 0.00)</span>
+            </div>
+          </div>
+
+          <!-- Live Step: TrueUp -->
+          <div class="formula-block">
+            <div class="f-comment">// C. True camera Up axis — TrueUp = cross(Right, Forward)</div>
+            <div class="formula-row">
+              <span class="f-accent-u">TrueUp</span> = 
+              <span class="f-highlight" id="calc_trueup_vec">(-0.41, 0.41, 0.82)</span>
+            </div>
+          </div>
+
+          <div class="result-badge forward">
+            <span>🎯 The 3 camera axes form an Orthonormal Basis (all unit length, mutually 90&deg; orthogonal).</span>
+          </div>
+        </div>
+
+        <!-- Theory Card 3: Transform Point P to Camera Space -->
+        <div class="math-card">
+          <div class="math-card-header">
+            <div>
+              <span class="math-step-num">Step 2 — Coordinate Projection</span>
+              <div class="math-card-title">3. Transform Point P from World Space to Camera Space</div>
+            </div>
+          </div>
+          <div class="math-card-desc">
+            For any 3D world point <strong style="color:var(--color-point);" id="text_pt_p">P = (7.5, 7.5, 7.5)</strong>, we translate relative to the camera origin, then project onto the camera's orthonormal axes using the <strong>Dot Product</strong>:
+          </div>
+
+          <div class="katex-display">
+            $$ \mathbf{rel} = \mathbf{P} - \mathbf{camPos}, \qquad \begin{bmatrix} X_{\text{cam}} \\ Y_{\text{cam}} \\ Z_{\text{cam}} \end{bmatrix} = \begin{bmatrix} \mathbf{rel} \cdot \mathbf{r} \\ \mathbf{rel} \cdot \mathbf{u} \\ \mathbf{rel} \cdot \mathbf{f} \end{bmatrix} $$
+          </div>
+
+          <div class="formula-title">Live Calculation Breakdown:</div>
+
+          <div class="formula-block">
+            <div class="f-comment">// 1. Translation: relative vector from camera to point: rel = P - camPos</div>
+            <div class="formula-row">
+              rel.x = <span id="calc_p_x">7.5</span> - (<span id="calc_c2_x">20.0</span>) = <span class="f-num" id="calc_rel_x">-12.50</span>
+            </div>
+            <div class="formula-row">
+              rel.y = <span id="calc_p_y">7.5</span> - (<span id="calc_c2_y">-20.0</span>) = <span class="f-num" id="calc_rel_y">27.50</span>
+            </div>
+            <div class="formula-row">
+              rel.z = <span id="calc_p_z">7.5</span> - (<span id="calc_c2_z">20.0</span>) = <span class="f-num" id="calc_rel_z">-12.50</span>
+            </div>
+          </div>
+
+          <div class="formula-block">
+            <div class="f-comment">// 2. Projection onto axes via Dot Product:</div>
+            
+            <div class="formula-row">
+              <span class="f-accent-r">X_cam</span> = rel &middot; Right
+            </div>
+            <div class="formula-row" style="font-size:0.73rem;">
+              = (<span id="calc_rx_term">-12.5 * 0.71</span>) + (<span id="calc_ry_term">27.5 * 0.71</span>) + (<span id="calc_rz_term">0</span>)
+            </div>
+            <div class="formula-row">
+              = <span class="f-highlight" id="calc_xcam_val">10.61</span> 
+              <span class="f-comment" id="calc_xcam_desc">(Right of camera lens)</span>
+            </div>
+
+            <div style="height: 6px;"></div>
+
+            <div class="formula-row">
+              <span class="f-accent-u">Y_cam</span> = rel &middot; TrueUp
+            </div>
+            <div class="formula-row" style="font-size:0.73rem;">
+              = (<span id="calc_ux_term">-12.5 * -0.41</span>) + (<span id="calc_uy_term">27.5 * 0.41</span>) + (<span id="calc_uz_term">-12.5 * 0.82</span>)
+            </div>
+            <div class="formula-row">
+              = <span class="f-highlight" id="calc_ycam_val">6.12</span>
+              <span class="f-comment" id="calc_ycam_desc">(Above camera lens)</span>
+            </div>
+
+            <div style="height: 6px;"></div>
+
+            <div class="formula-row">
+              <span class="f-accent-f">Z_cam</span> = rel &middot; Forward (Depth along line of sight)
+            </div>
+            <div class="formula-row" style="font-size:0.73rem;">
+              = (<span id="calc_fx_term">-12.5 * -0.58</span>) + (<span id="calc_fy_term">27.5 * 0.58</span>) + (<span id="calc_fz_term">-12.5 * -0.58</span>)
+            </div>
+            <div class="formula-row">
+              = <span class="f-highlight" id="calc_zcam_val">30.31</span>
+              <span class="f-comment" id="calc_zcam_desc">(In FRONT of camera, depth 30.31)</span>
+            </div>
+          </div>
+
+          <div class="result-badge point">
+            <span>💡 Coordinates in Camera Space: 
+              <strong id="badge_cam_coords">(X_cam: 10.61, Y_cam: 6.12, Z_cam: 30.31)</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Theory Card 4: Perspective Projection to Canvas 2D -->
+        <div class="math-card">
+          <div class="math-card-header">
+            <div>
+              <span class="math-step-num">Step 3 — Perspective Projection</span>
+              <div class="math-card-title">4. Project onto 2D Canvas Screen (Pixels)</div>
+            </div>
+          </div>
+          <div class="math-card-desc">
+            Objects farther away appear smaller through perspective division (dividing by depth $Z_{\text{cam}}$) and scaling by focal length $f = \text{fov} = <span id="text_fov">450</span>$:
+          </div>
+
+          <div class="katex-display">
+            $$ X_{\text{screen}} = \frac{X_{\text{cam}} \cdot f}{Z_{\text{cam}}}, \quad Y_{\text{screen}} = \frac{Y_{\text{cam}} \cdot f}{Z_{\text{cam}}} \qquad \Longrightarrow \qquad \begin{cases} x_{\text{pixel}} = \frac{W}{2} + X_{\text{screen}} \\ y_{\text{pixel}} = \frac{H}{2} - Y_{\text{screen}} \end{cases} $$
+          </div>
+
+          <div class="formula-title">Live Calculation Breakdown:</div>
+
+          <div class="formula-block">
+            <div class="f-comment">// A. Relative screen coordinates from lens center:</div>
+            <div class="formula-row">
+              X_screen = (X_cam * f) / Z_cam 
+                       = (<span id="calc_x_cam_proj">10.61</span> * <span id="calc_fov_x">450</span>) / <span id="calc_z_cam_proj">30.31</span>
+                       = <span class="f-num" id="calc_x_screen">157.5</span> px
+            </div>
+            <div class="formula-row">
+              Y_screen = (Y_cam * f) / Z_cam 
+                       = (<span id="calc_y_cam_proj">6.12</span> * <span id="calc_fov_y">450</span>) / <span id="calc_z_cam_proj">30.31</span>
+                       = <span class="f-num" id="calc_y_screen">90.8</span> px
+            </div>
+
+            <div style="height: 6px;"></div>
+            <div class="f-comment">// B. Map to Canvas pixel coordinates (Canvas origin (0,0) is at top-left):</div>
+            <div class="formula-row">
+              pixel_x = (W / 2) + X_screen
+                      = (<span id="calc_cw_half">320</span>) + (<span id="calc_xs_val">157.5</span>)
+                      = <span class="f-highlight" id="calc_pixel_x">477.5</span> px
+            </div>
+            <div class="formula-row">
+              pixel_y = (H / 2) - Y_screen
+                      = (<span id="calc_ch_half">190</span>) - (<span id="calc_ys_val">90.8</span>)
+                      = <span class="f-highlight" id="calc_pixel_y">99.2</span> px
+            </div>
+          </div>
+
+          <div class="result-badge up">
+            <span>📐 The minus sign in <code>pixel_y = (H / 2) - Y_screen</code> is because Canvas Y points downward, while 3D camera Y points upward!</span>
+          </div>
+        </div>
+
+        <!-- Theory Card 5: View Matrix 4x4 -->
+        <div class="math-card">
+          <div class="math-card-header">
+            <div>
+              <span class="math-step-num">Linear Algebra Pipeline</span>
+              <div class="math-card-title">5. The 4&times;4 View Matrix (LookAt Matrix)</div>
+            </div>
+          </div>
+          <div class="math-card-desc">
+            In graphics APIs (OpenGL, DirectX, WebGL), the translation and basis rotation are combined into a single $4 \times 4$ affine transformation matrix:
+          </div>
+
+          <div class="katex-display">
+            $$ \mathbf{V} = \begin{bmatrix} r_x & r_y & r_z & -\mathbf{r} \cdot \mathbf{camPos} \\ u_x & u_y & u_z & -\mathbf{u} \cdot \mathbf{camPos} \\ f_x & f_y & f_z & -\mathbf{f} \cdot \mathbf{camPos} \\ 0 & 0 & 0 & 1 \end{bmatrix}, \qquad \begin{bmatrix} X_{\text{cam}} \\ Y_{\text{cam}} \\ Z_{\text{cam}} \\ 1 \end{bmatrix} = \mathbf{V} \begin{bmatrix} P_x \\ P_y \\ P_z \\ 1 \end{bmatrix} $$
+          </div>
+
+          <div class="formula-title">Live 4&times;4 Matrix Values:</div>
+
+          <div class="matrix-grid">
+            <div class="matrix-cell"><div class="matrix-header">Right.x</div><span id="m00">0.71</span></div>
+            <div class="matrix-cell"><div class="matrix-header">Right.y</div><span id="m01">0.71</span></div>
+            <div class="matrix-cell"><div class="matrix-header">Right.z</div><span id="m02">0.00</span></div>
+            <div class="matrix-cell" style="color:#f59e0b;"><div class="matrix-header">-dot(R,pos)</div><span id="m03">0.00</span></div>
+
+            <div class="matrix-cell"><div class="matrix-header">TrueUp.x</div><span id="m10">-0.41</span></div>
+            <div class="matrix-cell"><div class="matrix-header">TrueUp.y</div><span id="m11">0.41</span></div>
+            <div class="matrix-cell"><div class="matrix-header">TrueUp.z</div><span id="m12">0.82</span></div>
+            <div class="matrix-cell" style="color:#06b6d4;"><div class="matrix-header">-dot(U,pos)</div><span id="m13">-32.66</span></div>
+
+            <div class="matrix-cell"><div class="matrix-header">Forward.x</div><span id="m20">-0.58</span></div>
+            <div class="matrix-cell"><div class="matrix-header">Forward.y</div><span id="m21">0.58</span></div>
+            <div class="matrix-cell"><div class="matrix-header">Forward.z</div><span id="m22">-0.58</span></div>
+            <div class="matrix-cell" style="color:#d946ef;"><div class="matrix-header">-dot(F,pos)</div><span id="m23">34.64</span></div>
+
+            <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+            <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+            <div class="matrix-cell" style="color:var(--text-dim);">0.00</div>
+            <div class="matrix-cell" style="color:#38bdf8; font-weight:700;">1.00</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      Computer Graphics Lab &mdash; Interactive 3D Camera Viewpoint &amp; Perspective Projection Simulator
+    </footer>
+  </section>
+
+  <!-- =========================================================================
+       SCRIPT 1: MATHEMATICAL TO GRAPHICAL COORDINATE CONVERTER
+       ========================================================================= -->
+  <script>
+    (function () {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const graphMaxX = canvas.width;  // 600
+      const graphMaxY = canvas.height; // 600
+      const mathMaxX = 4;              // 4
+      const mathMaxY = 4;              // 4
+
+      const centerX = graphMaxX / 2; // 300
+      const centerY = graphMaxY / 2; // 300
+      const stepX = (graphMaxX / 2) / mathMaxX; // 300 / 4 = 75 pixels per unit
+      const stepY = (graphMaxY / 2) / mathMaxY; // 300 / 4 = 75 pixels per unit
+
+      const mathXInput = document.getElementById('mathX');
+      const mathYInput = document.getElementById('mathY');
+
+      const lblMx = document.getElementById('lblMx');
+      const lblMy = document.getElementById('lblMy');
+      const calcMx = document.getElementById('calcMx');
+      const calcMy = document.getElementById('calcMy');
+      const resGx = document.getElementById('resGx');
+      const resGy = document.getElementById('resGy');
+      const finalGx = document.getElementById('finalGx');
+      const finalGy = document.getElementById('finalGy');
+      const formulaGy = document.getElementById('formulaGy');
+
+      window.setPoint = function (x, y) {
+        mathXInput.value = x;
+        mathYInput.value = y;
+        render();
+      };
+
+      function calculateGraphical(Mx, My) {
+        const Gx = stepX * Mx + centerX;
+        const Gy = centerY - stepY * My;
+        return { x: Gx, y: Gy };
+      }
+
+      function drawPoint(Mx, My) {
+        const g = calculateGraphical(Mx, My);
+
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#2980b9aa';
+        ctx.lineWidth = 1.4;
+
+        ctx.beginPath();
+        ctx.moveTo(g.x, centerY);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, g.y);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#e74c3caa';
+        ctx.beginPath();
+        ctx.moveTo(g.x, 0);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, g.y);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+        ctx.restore();
+
+        const dotX = Math.max(7, Math.min(graphMaxX - 7, g.x));
+        const dotY = Math.max(7, Math.min(graphMaxY - 7, g.y));
+
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 6.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2980b9';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.save();
+        let labelX, labelY1, labelY2;
+        let align = 'left';
+
+        if (g.x > graphMaxX - 110) {
+          align = 'right';
+          labelX = dotX - 10;
+        } else {
+          align = 'left';
+          labelX = dotX + 10;
+        }
+
+        if (g.y > graphMaxY - 45) {
+          labelY1 = dotY - 24;
+          labelY2 = dotY - 8;
+        } else if (g.y < 45) {
+          labelY1 = dotY + 12;
+          labelY2 = dotY + 28;
+        } else {
+          labelY1 = dotY - 6;
+          labelY2 = dotY + 10;
+        }
+
+        ctx.font = 'bold 13px sans-serif';
+        const text1 = `M(${Mx}, ${My})`;
+        const text2 = `G(${g.x}, ${g.y})`;
+        const textWidth = Math.max(ctx.measureText(text1).width, ctx.measureText(text2).width);
+        const bgX = (align === 'right') ? (labelX - textWidth - 6) : (labelX - 4);
+        const bgY = labelY1 - 12;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 1;
+        ctx.fillRect(bgX, bgY, textWidth + 10, 36);
+        ctx.strokeRect(bgX, bgY, textWidth + 10, 36);
+
+        ctx.textAlign = align;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#1b4f72';
+        ctx.fillText(text1, labelX, labelY1 - 9);
+
+        ctx.font = '11px monospace';
+        ctx.fillStyle = '#c0392b';
+        ctx.fillText(text2, labelX, labelY2 - 8);
+        ctx.restore();
+      }
+
+      function drawGridAndAxes(yDir = 'up') {
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= graphMaxX; x += stepX) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, graphMaxY);
+          ctx.stroke();
+        }
+
+        for (let y = 0; y <= graphMaxY; y += stepY) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(graphMaxX, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 1.5);
+        ctx.lineTo(graphMaxX, 1.5);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(1.5, 0);
+        ctx.lineTo(1.5, graphMaxY);
+        ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#2980b9';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        for (let x = 0; x <= graphMaxX; x += stepX) {
+          ctx.strokeStyle = '#2980b9';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, 8);
+          ctx.stroke();
+
+          if (x === 0) continue;
+          if (x === graphMaxX) {
+            ctx.textAlign = 'right';
+            ctx.fillText(`Gx=600`, x - 4, 10);
+          } else {
+            ctx.textAlign = 'center';
+            ctx.fillText(`Gx=${x}`, x, 10);
+          }
+        }
+
+        ctx.fillStyle = '#27ae60';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        for (let y = 0; y <= graphMaxY; y += stepY) {
+          ctx.strokeStyle = '#27ae60';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(8, y);
+          ctx.stroke();
+
+          if (y === 0) continue;
+          if (y === graphMaxY) {
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`Gy=600`, 10, y - 4);
+          } else {
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`Gy=${y}`, 10, y);
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#2c3e50';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Graphic Root (0, 0)', 14, 14);
+
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.lineWidth = 1.6;
+
+        ctx.beginPath();
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(graphMaxX, centerY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, graphMaxY);
+        ctx.stroke();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#7f8c8d';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('+4 (math)', graphMaxX - 6, centerY - 6);
+        ctx.textAlign = 'left';
+        ctx.fillText('-4 (math)', 6, centerY - 6);
+
+        ctx.fillText('+4 (math)', centerX + 6, 26);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('-4 (math)', centerX + 6, graphMaxY - 8);
+
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = '#34495e';
+
+        for (let i = -mathMaxX; i <= mathMaxX; i++) {
+          if (i === 0) continue;
+          const xPos = centerX + i * stepX;
+          ctx.strokeStyle = '#7f8c8d';
+          ctx.beginPath();
+          ctx.moveTo(xPos, centerY - 4);
+          ctx.lineTo(xPos, centerY + 4);
+          ctx.stroke();
+
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(`Mx=${i}`, xPos, centerY + 6);
+        }
+
+        for (let i = -mathMaxY; i <= mathMaxY; i++) {
+          if (i === 0) continue;
+          const yPos = centerY - i * stepY;
+          ctx.strokeStyle = '#7f8c8d';
+          ctx.beginPath();
+          ctx.moveTo(centerX - 4, yPos);
+          ctx.lineTo(centerX + 4, yPos);
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`My=${i}`, centerX + 6, yPos);
+        }
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#c0392b';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Origin (0, 0)', centerX - 8, centerY + 8);
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, graphMaxX, graphMaxY);
+
+        drawGridAndAxes();
+
+        const Mx = parseFloat(mathXInput.value) || 0;
+        const My = parseFloat(mathYInput.value) || 0;
+
+        drawPoint(Mx, My);
+
+        const g = calculateGraphical(Mx, My);
+
+        lblMx.textContent = Mx;
+        lblMy.textContent = My;
+        calcMx.textContent = Mx;
+        calcMy.textContent = My;
+        resGx.textContent = g.x;
+        resGy.textContent = g.y;
+        finalGx.textContent = g.x;
+        finalGy.textContent = g.y;
+
+        formulaGy.innerHTML = `Gy = 300 - (600 / 2) / 4 * ${My}<br>= <strong>${g.y}</strong>`;
+      }
+
+      mathXInput.addEventListener('input', render);
+      mathYInput.addEventListener('input', render);
+
+      render();
+    })();
+  </script>
+
+  <!-- =========================================================================
+       SCRIPT 1B: 2D VECTOR & COMPLEX MULTIPLICATION + ITERATION LABS
+       ========================================================================= -->
+  <script>
+    (function () {
+      const W = 600;
+      const H = 600;
+      const CX = 300;
+      const CY = 300;
+      const STEP = 75; // 600 / 2 / 4 = 75px per unit
+
+      function toGraph(mx, my) {
+        return { x: CX + mx * STEP, y: CY - my * STEP };
+      }
+
+      // Shared base grid & axes for 600x600 canvas (+Y points UP)
+      function drawBaseCanvas(ctx, showUnitBasis = false) {
+        ctx.clearRect(0, 0, W, H);
+
+        // 1. Grid lines every 75px
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= W; x += STEP) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y <= H; y += STEP) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // 2. Graphical Borders (Top = Blue Gx, Left = Green Gy)
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 1.5); ctx.lineTo(W, 1.5); ctx.stroke();
+
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(1.5, 0); ctx.lineTo(1.5, H); ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#2980b9';
+        ctx.textBaseline = 'top';
+        for (let x = STEP; x <= W; x += STEP) {
+          ctx.strokeStyle = '#2980b9';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 7); ctx.stroke();
+          ctx.textAlign = (x === W) ? 'right' : 'center';
+          ctx.fillText(`Gx=${x}`, (x === W) ? x - 4 : x, 9);
+        }
+
+        ctx.fillStyle = '#27ae60';
+        ctx.textAlign = 'left';
+        for (let y = STEP; y <= H; y += STEP) {
+          ctx.strokeStyle = '#27ae60';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(7, y); ctx.stroke();
+          ctx.textBaseline = (y === H) ? 'bottom' : 'middle';
+          ctx.fillText(`Gy=${y}`, 9, (y === H) ? y - 4 : y);
+        }
+
+        // Graphic Root (0,0)
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Graphic Root (0,0)', 12, 12);
+
+        // 3. Mathematical Axes centered at (300, 300)
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(0, CY); ctx.lineTo(W, CY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(CX, 0); ctx.lineTo(CX, H); ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#475569';
+        for (let i = -4; i <= 4; i++) {
+          if (i === 0) continue;
+          const xPos = CX + i * STEP;
+          ctx.beginPath(); ctx.moveTo(xPos, CY - 4); ctx.lineTo(xPos, CY + 4); ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(`${i}`, xPos, CY + 6);
+
+          const yPos = CY - i * STEP;
+          ctx.beginPath(); ctx.moveTo(CX - 4, yPos); ctx.lineTo(CX + 4, yPos); ctx.stroke();
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(showUnitBasis ? `${i}i` : `${i}`, CX + 6, yPos);
+        }
+
+        // Optional Unit Basis Vectors e1 = 1 and e2 = i (from Whiteboard)
+        if (showUnitBasis) {
+          drawVectorArrow(ctx, 0, 0, 1, 0, '#dc2626', 'e₁ = 1', 3, false);
+          drawVectorArrow(ctx, 0, 0, 0, 1, '#0f172a', 'e₂ = i', 3, false);
+        }
+      }
+
+      function drawVectorArrow(ctx, mx1, my1, mx2, my2, color, label, width = 2.5, dashed = false) {
+        const p1 = toGraph(mx1, my1);
+        const p2 = toGraph(mx2, my2);
+
+        ctx.save();
+        if (dashed) ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (dist > 4) {
+          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+          const headLen = 10;
+          ctx.beginPath();
+          ctx.moveTo(p2.x, p2.y);
+          ctx.lineTo(p2.x - headLen * Math.cos(angle - Math.PI / 6), p2.y - headLen * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(p2.x - headLen * Math.cos(angle + Math.PI / 6), p2.y - headLen * Math.sin(angle + Math.PI / 6));
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        if (label) {
+          ctx.font = 'bold 12px Fira Code, monospace';
+          const lx = Math.max(18, Math.min(W - 115, p2.x + 8));
+          const ly = Math.max(18, Math.min(H - 18, p2.y - 8));
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+          const tw = ctx.measureText(label).width;
+          ctx.fillRect(lx - 3, ly - 11, tw + 6, 16);
+          ctx.fillStyle = color;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillText(label, lx, ly);
+        }
+        ctx.restore();
+      }
+
+      function drawAngleArc(ctx, angleRad, radiusPx, color, label) {
+        if (Math.abs(angleRad) < 0.01) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        // Canvas angles go clockwise, so negative angleRad goes counter-clockwise (standard math +Y up)
+        ctx.arc(CX, CY, radiusPx, 0, -angleRad, angleRad > 0);
+        ctx.stroke();
+
+        if (label) {
+          const midAngle = -angleRad / 2;
+          const tx = CX + (radiusPx + 14) * Math.cos(midAngle);
+          const ty = CY + (radiusPx + 14) * Math.sin(midAngle);
+          ctx.fillStyle = color;
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, tx, ty);
+        }
+        ctx.restore();
+      }
+
+      // =====================================================================
+      // PART A1: PAGE 2 — 2D VECTORS: TURNING & STRETCHING (NO 'i' CLUTTER)
+      // =====================================================================
+      const vcCanvas = document.getElementById('vec2dCanvas');
+      const vcCtx = vcCanvas.getContext('2d');
+      const vecU1 = document.getElementById('vecU1');
+      const vecU2 = document.getElementById('vecU2');
+      const vecV1 = document.getElementById('vecV1');
+      const vecV2 = document.getElementById('vecV2');
+
+      window.setVec2DPreset = function (u1, u2, v1, v2) {
+        vecU1.value = u1;
+        vecU2.value = u2;
+        vecV1.value = v1;
+        vecV2.value = v2;
+        renderVec2D();
+      };
+
+      function renderVec2D() {
+        const u1 = parseFloat(vecU1.value) || 0;
+        const u2 = parseFloat(vecU2.value) || 0;
+        const v1 = parseFloat(vecV1.value) || 0;
+        const v2 = parseFloat(vecV2.value) || 0;
+
+        // Direct Magic Formula: (u1*v1 - u2*v2, u1*v2 + u2*v1)
+        const prodX = u1 * v1 - u2 * v2;
+        const prodY = u1 * v2 + u2 * v1;
+
+        const lenU = Math.hypot(u1, u2);
+        const lenV = Math.hypot(v1, v2);
+        const lenProd = lenU * lenV;
+
+        const angU = Math.atan2(u2, u1);
+        const angV = Math.atan2(v2, v1);
+        const angProd = angU + angV;
+
+        const degU = (angU * 180 / Math.PI);
+        const degV = (angV * 180 / Math.PI);
+        const degProd = (angProd * 180 / Math.PI);
+
+        // Pure 2D Vector grid (showUnitBasis = false -> standard Y numbers, no i)
+        drawBaseCanvas(vcCtx, false);
+
+        // Draw angle arcs (alpha, beta, alpha + beta)
+        drawAngleArc(vcCtx, angU, 36, '#2563eb', 'α');
+        drawAngleArc(vcCtx, angV, 52, '#059669', 'β');
+        drawAngleArc(vcCtx, angProd, 70, '#9333ea', 'α+β');
+
+        // Draw dashed projection of product vector to math axes
+        const gProd = toGraph(prodX, prodY);
+        vcCtx.save();
+        vcCtx.setLineDash([4, 4]);
+        vcCtx.strokeStyle = 'rgba(147, 51, 234, 0.45)';
+        vcCtx.lineWidth = 1.4;
+        vcCtx.beginPath(); vcCtx.moveTo(gProd.x, CY); vcCtx.lineTo(gProd.x, gProd.y); vcCtx.stroke();
+        vcCtx.beginPath(); vcCtx.moveTo(CX, gProd.y); vcCtx.lineTo(gProd.x, gProd.y); vcCtx.stroke();
+        vcCtx.restore();
+
+        // Draw vectors u, v, and product u ⊗ v
+        drawVectorArrow(vcCtx, 0, 0, u1, u2, '#2563eb', `u[${u1}, ${u2}]`, 2.8);
+        drawVectorArrow(vcCtx, 0, 0, v1, v2, '#059669', `v[${v1}, ${v2}]`, 2.8);
+        drawVectorArrow(vcCtx, 0, 0, prodX, prodY, '#9333ea', `u⊗v[${prodX.toFixed(2)}, ${prodY.toFixed(2)}]`, 3.5);
+
+        // Update DOM readouts
+        document.getElementById('vcAngleU').textContent = degU.toFixed(1);
+        document.getElementById('vcAngleV').textContent = degV.toFixed(1);
+        document.getElementById('vcAngleProd').textContent = degProd.toFixed(1);
+        document.getElementById('vcLenU').textContent = lenU.toFixed(2);
+        document.getElementById('vcLenV').textContent = lenV.toFixed(2);
+        document.getElementById('vcLenProd').textContent = lenProd.toFixed(2);
+
+        document.getElementById('vcCalcX').textContent = `(${u1}·${v1}) − (${u2}·${v2})`;
+        document.getElementById('vcCalcY').textContent = `(${u1}·${v2}) + (${u2}·${v1})`;
+        document.getElementById('vcProdX').textContent = prodX.toFixed(2);
+        document.getElementById('vcProdY').textContent = prodY.toFixed(2);
+        document.getElementById('vcFinalM').textContent = `${prodX.toFixed(2)}, ${prodY.toFixed(2)}`;
+        document.getElementById('vcFinalG').textContent = `${gProd.x.toFixed(1)}, ${gProd.y.toFixed(1)}`;
+      }
+
+      [vecU1, vecU2, vecV1, vecV2].forEach(el => el.addEventListener('input', renderVec2D));
+      renderVec2D();
+
+      // =====================================================================
+      // PART A2: PAGE 3 — COMPLEX NUMBERS & WHY THE MAGIC FORMULA WORKS
+      // =====================================================================
+      const cxCanvas = document.getElementById('complexDerivCanvas');
+      const cxCtx = cxCanvas.getContext('2d');
+      const cxU1 = document.getElementById('cxU1');
+      const cxU2 = document.getElementById('cxU2');
+      const cxV1 = document.getElementById('cxV1');
+      const cxV2 = document.getElementById('cxV2');
+
+      window.setComplexDemo = function (u1, u2, v1, v2) {
+        cxU1.value = u1;
+        cxU2.value = u2;
+        cxV1.value = v1;
+        cxV2.value = v2;
+        renderComplexDeriv();
+      };
+
+      function fmtComplex(re, im) {
+        const sign = im >= 0 ? '+' : '−';
+        return `${re} ${sign} ${Math.abs(im)}i`;
+      }
+
+      function renderComplexDeriv() {
+        const u1 = parseFloat(cxU1.value) || 0;
+        const u2 = parseFloat(cxU2.value) || 0;
+        const v1 = parseFloat(cxV1.value) || 0;
+        const v2 = parseFloat(cxV2.value) || 0;
+
+        const t1 = u1 * v1;
+        const t2 = u1 * v2;
+        const t3 = u2 * v1;
+        const t4 = u2 * v2;
+        const resX = t1 - t4;
+        const resY = t2 + t3;
+
+        // Complex plane with unit basis vectors e1 = 1 and e2 = i
+        drawBaseCanvas(cxCtx, true);
+
+        const angU = Math.atan2(u2, u1);
+        const angV = Math.atan2(v2, v1);
+        const angProd = angU + angV;
+
+        drawAngleArc(cxCtx, angU, 36, '#2563eb', 'α');
+        drawAngleArc(cxCtx, angV, 52, '#059669', 'β');
+        drawAngleArc(cxCtx, angProd, 70, '#9333ea', 'α+β');
+
+        drawVectorArrow(cxCtx, 0, 0, u1, u2, '#2563eb', `u = ${fmtComplex(u1, u2)}`, 2.6);
+        drawVectorArrow(cxCtx, 0, 0, v1, v2, '#059669', `v = ${fmtComplex(v1, v2)}`, 2.6);
+        drawVectorArrow(cxCtx, 0, 0, resX, resY, '#9333ea', `u·v = ${fmtComplex(Number(resX.toFixed(2)), Number(resY.toFixed(2)))}`, 3.4);
+
+        document.getElementById('cxExprU').textContent = fmtComplex(u1, u2);
+        document.getElementById('cxExprV').textContent = fmtComplex(v1, v2);
+        document.getElementById('cxT1').textContent = t1.toFixed(2);
+        document.getElementById('cxT2').textContent = t2.toFixed(2);
+        document.getElementById('cxT3').textContent = t3.toFixed(2);
+        document.getElementById('cxT4').textContent = t4.toFixed(2);
+        document.getElementById('cxResX').textContent = resX.toFixed(2);
+        document.getElementById('cxResY').textContent = resY.toFixed(2);
+        document.getElementById('cxFinalComplex').textContent = fmtComplex(resX.toFixed(2), resY.toFixed(2));
+        document.getElementById('cxFinalVec').textContent = `[${resX.toFixed(2)}, ${resY.toFixed(2)}]`;
+      }
+
+      [cxU1, cxU2, cxV1, cxV2].forEach(el => el.addEventListener('input', renderComplexDeriv));
+      renderComplexDeriv();
+
+      // =====================================================================
+      // PART B: COMPLEX ITERATION LAB f(z) = z² + c
+      // =====================================================================
+      const iterCanvas = document.getElementById('iterCanvas');
+      const iterCtx = iterCanvas.getContext('2d');
+      const iterZ0X = document.getElementById('iterZ0X');
+      const iterZ0Y = document.getElementById('iterZ0Y');
+      const iterCX = document.getElementById('iterCX');
+      const iterCY = document.getElementById('iterCY');
+      const iterTableBody = document.getElementById('iterTableBody');
+      const iterStepLabel = document.getElementById('iterStepLabel');
+
+      let visibleSteps = 10;
+      let animTimer = null;
+
+      window.setIterPreset = function (x0, y0, cx, cy) {
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        iterZ0X.value = x0;
+        iterZ0Y.value = y0;
+        iterCX.value = cx;
+        iterCY.value = cy;
+        visibleSteps = 10;
+        renderIteration();
+      };
+
+      function computeIterates() {
+        const x0 = parseFloat(iterZ0X.value) || 0;
+        const y0 = parseFloat(iterZ0Y.value) || 0;
+        const cx = parseFloat(iterCX.value) || 0;
+        const cy = parseFloat(iterCY.value) || 0;
+
+        const list = [];
+        let zx = x0;
+        let zy = y0;
+
+        for (let n = 0; n <= 10; n++) {
+          const sqX = zx * zx - zy * zy;
+          const sqY = 2 * zx * zy;
+          const nextX = sqX + cx;
+          const nextY = sqY + cy;
+          const g = toGraph(zx, zy);
+          list.push({ n, x: zx, y: zy, sqX, sqY, nextX, nextY, gx: g.x, gy: g.y });
+          zx = nextX;
+          zy = nextY;
+        }
+        return list;
+      }
+
+      function renderIteration() {
+        const pts = computeIterates();
+        iterStepLabel.textContent = visibleSteps;
+
+        drawBaseCanvas(iterCtx, false);
+
+        // Draw connecting arrows and dots up to visibleSteps
+        for (let i = 0; i <= visibleSteps; i++) {
+          const p = pts[i];
+          if (i < visibleSteps) {
+            const next = pts[i + 1];
+            drawVectorArrow(iterCtx, p.x, p.y, next.x, next.y, 'rgba(2, 132, 199, 0.65)', '', 2, true);
+          }
+        }
+
+        for (let i = 0; i <= visibleSteps; i++) {
+          const p = pts[i];
+          const dotX = Math.max(8, Math.min(W - 8, p.gx));
+          const dotY = Math.max(8, Math.min(H - 8, p.gy));
+
+          iterCtx.save();
+          iterCtx.beginPath();
+          iterCtx.arc(dotX, dotY, i === 0 ? 7.5 : 6, 0, Math.PI * 2);
+          iterCtx.fillStyle = (i === 0) ? '#dc2626' : (i === visibleSteps ? '#9333ea' : '#0284c7');
+          iterCtx.fill();
+          iterCtx.strokeStyle = '#ffffff';
+          iterCtx.lineWidth = 2;
+          iterCtx.stroke();
+
+          // Offset label slightly based on step index so oscillating points (like z0, z2, z4) don't overlap completely
+          const rowOffset = (i % 3) * 14 - 10;
+          iterCtx.font = 'bold 11px Fira Code, monospace';
+          iterCtx.fillStyle = '#0f172a';
+          iterCtx.fillText(`z${i}(${p.x.toFixed(2)},${p.y.toFixed(2)})`, dotX + 9, dotY + rowOffset);
+          iterCtx.restore();
+        }
+
+        // Populate Spreadsheet Table
+        iterTableBody.innerHTML = pts.map((p, idx) => {
+          const isShown = idx <= visibleSteps;
+          const isCurrent = idx === visibleSteps;
+          return `<tr class="${isCurrent ? 'active-row' : ''}" style="opacity:${isShown ? '1' : '0.35'}">
+            <td><strong>z<sub>${p.n}</sub></strong></td>
+            <td class="${p.n === 0 ? 'sheet-green' : ''}">(${p.x.toFixed(3)}, ${p.y.toFixed(3)})</td>
+            <td>(${p.sqX.toFixed(3)}, ${p.sqY.toFixed(3)})</td>
+            <td style="color:#7e22ce; font-weight:600;">&rarr; z<sub>${p.n + 1}</sub>(${p.nextX.toFixed(3)}, ${p.nextY.toFixed(3)})</td>
+            <td>(${p.gx.toFixed(0)}, ${p.gy.toFixed(0)})</td>
+          </tr>`;
+        }).join('');
+      }
+
+      document.getElementById('btnIterAnimate').addEventListener('click', () => {
+        if (animTimer) clearInterval(animTimer);
+        visibleSteps = 0;
+        renderIteration();
+        animTimer = setInterval(() => {
+          if (visibleSteps < 10) {
+            visibleSteps++;
+            renderIteration();
+          } else {
+            clearInterval(animTimer);
+            animTimer = null;
+          }
+        }, 550);
+      });
+
+      document.getElementById('btnIterStep').addEventListener('click', () => {
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        visibleSteps = (visibleSteps + 1) % 11;
+        renderIteration();
+      });
+
+      document.getElementById('btnIterShowAll').addEventListener('click', () => {
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        visibleSteps = 10;
+        renderIteration();
+      });
+
+      [iterZ0X, iterZ0Y, iterCX, iterCY].forEach(el => el.addEventListener('input', () => {
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        renderIteration();
+      }));
+
+      renderIteration();
+    })();
+  </script>
+
+  <!-- =========================================================================
+       SCRIPT 2: CAMERA COORDINATE SYSTEM & 3D VIEWPOINT
+       ========================================================================= -->
+  <script>
+    (function () {
+      class Vec3 {
+        constructor(x = 0, y = 0, z = 0) {
+          this.x = x;
+          this.y = y;
+          this.z = z;
+        }
+        add(v) { return new Vec3(this.x + v.x, this.y + v.y, this.z + v.z); }
+        sub(v) { return new Vec3(this.x - v.x, this.y - v.y, this.z - v.z); }
+        mul(s) { return new Vec3(this.x * s, this.y * s, this.z * s); }
+        dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+        cross(v) {
+          return new Vec3(
+            this.y * v.z - this.z * v.y,
+            this.z * v.x - this.x * v.z,
+            this.x * v.y - this.y * v.x
+          );
+        }
+        length() { return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z); }
+        normalize() {
+          const len = this.length();
+          if (len < 1e-6) return new Vec3(0, 0, 0);
+          return new Vec3(this.x / len, this.y / len, this.z / len);
+        }
+        clone() { return new Vec3(this.x, this.y, this.z); }
+      }
+
+      const state = {
+        camPos: new Vec3(20, -20, 20),
+        target: new Vec3(0, 0, 0),
+        worldUp: new Vec3(0, 0, 1),
+        fov: 450,
+        testPoint: new Vec3(7.5, 7.5, 7.5),
+
+        isAutoOrbit: false,
+        orbitAngle: Math.atan2(-20, 20),
+        orbitRadius: Math.sqrt(20 * 20 + (-20) * (-20)),
+        orbitZ: 20,
+
+        godYaw: -0.65,
+        godPitch: 0.52,
+        godDist: 65,
+        godCenter: new Vec3(0, 0, 5),
+        isDraggingGod: false,
+        lastMouseX: 0,
+        lastMouseY: 0
+      };
+
+      const worldCanvas = document.getElementById('worldCanvas');
+      const worldCtx = worldCanvas.getContext('2d');
+      const screenCanvas = document.getElementById('screenCanvas');
+      const screenCtx = screenCanvas.getContext('2d');
+
+      const camXSlider = document.getElementById('camX');
+      const camYSlider = document.getElementById('camY');
+      const camZSlider = document.getElementById('camZ');
+      const targetZSlider = document.getElementById('targetZ');
+      const fovSlider = document.getElementById('fovSlider');
+      const ptXSlider = document.getElementById('ptX');
+      const ptYSlider = document.getElementById('ptY');
+      const ptZSlider = document.getElementById('ptZ');
+
+      const valCamX = document.getElementById('valCamX');
+      const valCamY = document.getElementById('valCamY');
+      const valCamZ = document.getElementById('valCamZ');
+      const valTargetZ = document.getElementById('valTargetZ');
+      const valFov = document.getElementById('valFov');
+      const valPtX = document.getElementById('valPtX');
+      const valPtY = document.getElementById('valPtY');
+      const valPtZ = document.getElementById('valPtZ');
+
+      const btnAutoOrbit = document.getElementById('btnAutoOrbit');
+      const autoOrbitText = document.getElementById('autoOrbitText');
+      const btnResetAll = document.getElementById('btnResetAll');
+      const presetButtons = document.querySelectorAll('.pill-btn');
+
+      function renderMath() {
+        if (window.renderMathInElement) {
+          try {
+            renderMathInElement(document.body, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false }
+              ],
+              throwOnError: false
+            });
+          } catch (err) {
+            console.warn('KaTeX render error:', err);
+          }
+        } else {
+          setTimeout(renderMath, 150);
+        }
+      }
+
+      function computeCameraFrame() {
+        const dir = state.target.sub(state.camPos);
+        const dirLen = dir.length();
+        const forward = dir.normalize();
+
+        let rightRaw = forward.cross(state.worldUp);
+        let rLen = rightRaw.length();
+
+        if (rLen < 1e-4) {
+          const altUp = new Vec3(0, 1, 0);
+          rightRaw = forward.cross(altUp);
+          rLen = rightRaw.length();
+        }
+        const right = rightRaw.normalize();
+        const trueUp = right.cross(forward).normalize();
+
+        const relP = state.testPoint.sub(state.camPos);
+        const xCam = relP.dot(right);
+        const yCam = relP.dot(trueUp);
+        const zCam = relP.dot(forward);
+
+        let xScreen = 0;
+        let yScreen = 0;
+        let pixelX = 0;
+        let pixelY = 0;
+        let isVisible = zCam > 0.05;
+
+        const sW = screenCanvas.parentElement.clientWidth || 640;
+        const sH = screenCanvas.parentElement.clientHeight || 380;
+
+        if (isVisible) {
+          xScreen = (xCam * state.fov) / zCam;
+          yScreen = (yCam * state.fov) / zCam;
+          pixelX = (sW / 2) + xScreen;
+          pixelY = (sH / 2) - yScreen;
+        }
+
+        return {
+          dir,
+          dirLen,
+          forward,
+          rightRaw,
+          right,
+          trueUp,
+          relP,
+          xCam,
+          yCam,
+          zCam,
+          xScreen,
+          yScreen,
+          pixelX,
+          pixelY,
+          isVisible
+        };
+      }
+
+      function resizeCanvases() {
+        const wRect = worldCanvas.parentElement.getBoundingClientRect();
+        const sRect = screenCanvas.parentElement.getBoundingClientRect();
+        if (wRect.width === 0 || sRect.width === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+
+        worldCanvas.width = wRect.width * dpr;
+        worldCanvas.height = wRect.height * dpr;
+        worldCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        screenCanvas.width = sRect.width * dpr;
+        screenCanvas.height = sRect.height * dpr;
+        screenCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        document.getElementById('hudResolution').textContent = `${Math.round(sRect.width)} × ${Math.round(sRect.height)} px`;
+      }
+
+      window.resizeCameraCanvases = function () {
+        resizeCanvases();
+        update();
+      };
+
+      function projectGodView(p, w, h) {
+        const cx = p.x - state.godCenter.x;
+        const cy = p.y - state.godCenter.y;
+        const cz = p.z - state.godCenter.z;
+
+        const cosY = Math.cos(state.godYaw);
+        const sinY = Math.sin(state.godYaw);
+        const x1 = cx * cosY - cy * sinY;
+        const y1 = cx * sinY + cy * cosY;
+        const z1 = cz;
+
+        const cosP = Math.cos(state.godPitch);
+        const sinP = Math.sin(state.godPitch);
+        const x2 = x1;
+        const y2 = y1 * cosP - z1 * sinP;
+        const z2 = y1 * sinP + z1 * cosP;
+
+        const depth = z2 + state.godDist;
+        if (depth < 0.1) return { x: 0, y: 0, visible: false, depth };
+
+        const fovScale = 480;
+        const scale = fovScale / depth;
+        return {
+          x: w / 2 + x2 * scale,
+          y: h / 2 - y2 * scale,
+          visible: true,
+          depth
+        };
+      }
+
+      function drawArrowGod(from, to, color, label, width = 2) {
+        const p1 = projectGodView(from, worldCanvas.parentElement.clientWidth, worldCanvas.parentElement.clientHeight);
+        const p2 = projectGodView(to, worldCanvas.parentElement.clientWidth, worldCanvas.parentElement.clientHeight);
+        if (!p1.visible || !p2.visible) return;
+
+        worldCtx.save();
+        worldCtx.strokeStyle = color;
+        worldCtx.fillStyle = color;
+        worldCtx.lineWidth = width;
+
+        worldCtx.beginPath();
+        worldCtx.moveTo(p1.x, p1.y);
+        worldCtx.lineTo(p2.x, p2.y);
+        worldCtx.stroke();
+
+        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        const headLen = 8;
+        worldCtx.beginPath();
+        worldCtx.moveTo(p2.x, p2.y);
+        worldCtx.lineTo(p2.x - headLen * Math.cos(angle - Math.PI / 6), p2.y - headLen * Math.sin(angle - Math.PI / 6));
+        worldCtx.lineTo(p2.x - headLen * Math.cos(angle + Math.PI / 6), p2.y - headLen * Math.sin(angle + Math.PI / 6));
+        worldCtx.closePath();
+        worldCtx.fill();
+
+        if (label) {
+          worldCtx.font = '600 11px Fira Code';
+          worldCtx.fillText(label, p2.x + 8, p2.y + 4);
+        }
+        worldCtx.restore();
+      }
+
+      function renderWorldView(frame) {
+        const w = worldCanvas.parentElement.clientWidth;
+        const h = worldCanvas.parentElement.clientHeight;
+        if (!w || !h) return;
+        worldCtx.clearRect(0, 0, w, h);
+
+        worldCtx.save();
+        worldCtx.strokeStyle = 'rgba(15, 23, 42, 0.08)';
+        worldCtx.lineWidth = 1;
+        const gridSize = 25;
+        const step = 5;
+        for (let x = -gridSize; x <= gridSize; x += step) {
+          const p1 = projectGodView(new Vec3(x, -gridSize, 0), w, h);
+          const p2 = projectGodView(new Vec3(x, gridSize, 0), w, h);
+          if (p1.visible && p2.visible) {
+            worldCtx.beginPath();
+            worldCtx.moveTo(p1.x, p1.y);
+            worldCtx.lineTo(p2.x, p2.y);
+            worldCtx.stroke();
+          }
+        }
+        for (let y = -gridSize; y <= gridSize; y += step) {
+          const p1 = projectGodView(new Vec3(-gridSize, y, 0), w, h);
+          const p2 = projectGodView(new Vec3(gridSize, y, 0), w, h);
+          if (p1.visible && p2.visible) {
+            worldCtx.beginPath();
+            worldCtx.moveTo(p1.x, p1.y);
+            worldCtx.lineTo(p2.x, p2.y);
+            worldCtx.stroke();
+          }
+        }
+        worldCtx.restore();
+
+        const origin = new Vec3(0, 0, 0);
+        drawArrowGod(origin, new Vec3(12, 0, 0), '#dc2626', '+X_world', 2);
+        drawArrowGod(origin, new Vec3(0, 12, 0), '#059669', '+Y_world', 2);
+        drawArrowGod(origin, new Vec3(0, 0, 12), '#2563eb', '+Z_world', 2);
+
+        const ptTarget = projectGodView(state.target, w, h);
+        if (ptTarget.visible) {
+          worldCtx.save();
+          worldCtx.fillStyle = '#ca8a04';
+          worldCtx.beginPath();
+          worldCtx.arc(ptTarget.x, ptTarget.y, 5, 0, Math.PI * 2);
+          worldCtx.fill();
+          worldCtx.font = '600 11px Inter';
+          worldCtx.fillText('Target (0,0,0)', ptTarget.x + 8, ptTarget.y - 4);
+          worldCtx.restore();
+        }
+
+        const bMin = new Vec3(5, 5, 5);
+        const bMax = new Vec3(10, 10, 10);
+        const cubeVertices = [
+          new Vec3(bMin.x, bMin.y, bMin.z),
+          new Vec3(bMax.x, bMin.y, bMin.z),
+          new Vec3(bMax.x, bMax.y, bMin.z),
+          new Vec3(bMin.x, bMax.y, bMin.z),
+          new Vec3(bMin.x, bMin.y, bMax.z),
+          new Vec3(bMax.x, bMin.y, bMax.z),
+          new Vec3(bMax.x, bMax.y, bMax.z),
+          new Vec3(bMin.x, bMax.y, bMax.z)
+        ];
+        const cubeEdges = [
+          [0, 1], [1, 2], [2, 3], [3, 0],
+          [4, 5], [5, 6], [6, 7], [7, 4],
+          [0, 4], [1, 5], [2, 6], [3, 7]
+        ];
+
+        worldCtx.save();
+        worldCtx.strokeStyle = 'rgba(5, 150, 105, 0.55)';
+        worldCtx.lineWidth = 1.5;
+        for (const [i, j] of cubeEdges) {
+          const p1 = projectGodView(cubeVertices[i], w, h);
+          const p2 = projectGodView(cubeVertices[j], w, h);
+          if (p1.visible && p2.visible) {
+            worldCtx.beginPath();
+            worldCtx.moveTo(p1.x, p1.y);
+            worldCtx.lineTo(p2.x, p2.y);
+            worldCtx.stroke();
+          }
+        }
+        worldCtx.restore();
+
+        const pCam = projectGodView(state.camPos, w, h);
+        if (pCam.visible && ptTarget.visible) {
+          worldCtx.save();
+          worldCtx.setLineDash([4, 4]);
+          worldCtx.strokeStyle = 'rgba(15, 23, 42, 0.35)';
+          worldCtx.beginPath();
+          worldCtx.moveTo(pCam.x, pCam.y);
+          worldCtx.lineTo(ptTarget.x, ptTarget.y);
+          worldCtx.stroke();
+          worldCtx.restore();
+        }
+
+        const frustumDist = 8;
+        const fw = 6;
+        const fh = 4.2;
+        const fCenter = state.camPos.add(frame.forward.mul(frustumDist));
+        const cTL = fCenter.sub(frame.right.mul(fw)).add(frame.trueUp.mul(fh));
+        const cTR = fCenter.add(frame.right.mul(fw)).add(frame.trueUp.mul(fh));
+        const cBR = fCenter.add(frame.right.mul(fw)).sub(frame.trueUp.mul(fh));
+        const cBL = fCenter.sub(frame.right.mul(fw)).sub(frame.trueUp.mul(fh));
+
+        const pFrust = [cTL, cTR, cBR, cBL].map(pt => projectGodView(pt, w, h));
+        if (pCam.visible && pFrust.every(p => p.visible)) {
+          worldCtx.save();
+          worldCtx.strokeStyle = 'rgba(192, 38, 211, 0.5)';
+          worldCtx.lineWidth = 1;
+          pFrust.forEach(corner => {
+            worldCtx.beginPath();
+            worldCtx.moveTo(pCam.x, pCam.y);
+            worldCtx.lineTo(corner.x, corner.y);
+            worldCtx.stroke();
+          });
+          worldCtx.beginPath();
+          worldCtx.moveTo(pFrust[0].x, pFrust[0].y);
+          worldCtx.lineTo(pFrust[1].x, pFrust[1].y);
+          worldCtx.lineTo(pFrust[2].x, pFrust[2].y);
+          worldCtx.lineTo(pFrust[3].x, pFrust[3].y);
+          worldCtx.closePath();
+          worldCtx.fillStyle = 'rgba(192, 38, 211, 0.08)';
+          worldCtx.fill();
+          worldCtx.stroke();
+          worldCtx.restore();
+        }
+
+        const axisLen = 7;
+        drawArrowGod(state.camPos, state.camPos.add(frame.forward.mul(axisLen * 1.3)), '#c026d3', 'Forward', 2.5);
+        drawArrowGod(state.camPos, state.camPos.add(frame.right.mul(axisLen)), '#d97706', 'Right', 2.5);
+        drawArrowGod(state.camPos, state.camPos.add(frame.trueUp.mul(axisLen)), '#0284c7', 'TrueUp', 2.5);
+
+        if (pCam.visible) {
+          worldCtx.save();
+          worldCtx.fillStyle = '#0284c7';
+          worldCtx.shadowColor = 'rgba(2, 132, 199, 0.35)';
+          worldCtx.shadowBlur = 8;
+          worldCtx.beginPath();
+          worldCtx.arc(pCam.x, pCam.y, 6, 0, Math.PI * 2);
+          worldCtx.fill();
+          worldCtx.font = '700 12px Inter';
+          worldCtx.fillStyle = '#0369a1';
+          worldCtx.fillText('Camera', pCam.x + 10, pCam.y + 4);
+          worldCtx.restore();
+        }
+
+        const ptPProj = projectGodView(state.testPoint, w, h);
+        if (ptPProj.visible) {
+          if (pCam.visible) {
+            worldCtx.save();
+            worldCtx.setLineDash([3, 3]);
+            worldCtx.strokeStyle = 'rgba(5, 150, 105, 0.45)';
+            worldCtx.beginPath();
+            worldCtx.moveTo(pCam.x, pCam.y);
+            worldCtx.lineTo(ptPProj.x, ptPProj.y);
+            worldCtx.stroke();
+            worldCtx.restore();
+          }
+
+          worldCtx.save();
+          worldCtx.fillStyle = '#059669';
+          worldCtx.shadowColor = 'rgba(5, 150, 105, 0.35)';
+          worldCtx.shadowBlur = 10;
+          worldCtx.beginPath();
+          worldCtx.arc(ptPProj.x, ptPProj.y, 6.5, 0, Math.PI * 2);
+          worldCtx.fill();
+
+          worldCtx.font = '600 11px Fira Code';
+          worldCtx.fillStyle = '#0f172a';
+          worldCtx.fillText(`P(${state.testPoint.x}, ${state.testPoint.y}, ${state.testPoint.z})`, ptPProj.x + 10, ptPProj.y - 4);
+          worldCtx.restore();
+        }
+      }
+
+      function projectToCamera(pt, frame, width, height) {
+        const rel = pt.sub(state.camPos);
+        const xCam = rel.dot(frame.right);
+        const yCam = rel.dot(frame.trueUp);
+        const zCam = rel.dot(frame.forward);
+
+        if (zCam <= 0.1) {
+          return { visible: false, zCam };
+        }
+
+        const xScreen = (xCam * state.fov) / zCam;
+        const yScreen = (yCam * state.fov) / zCam;
+        const px = (width / 2) + xScreen;
+        const py = (height / 2) - yScreen;
+
+        return {
+          visible: true,
+          xCam,
+          yCam,
+          zCam,
+          xScreen,
+          yScreen,
+          px,
+          py
+        };
+      }
+
+      function renderCameraScreen(frame) {
+        const w = screenCanvas.parentElement.clientWidth;
+        const h = screenCanvas.parentElement.clientHeight;
+        if (!w || !h) return;
+        screenCtx.clearRect(0, 0, w, h);
+
+        const grad = screenCtx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w / 1.4);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(1, '#f1f5f9');
+        screenCtx.fillStyle = grad;
+        screenCtx.fillRect(0, 0, w, h);
+
+        screenCtx.save();
+        screenCtx.strokeStyle = 'rgba(15, 23, 42, 0.06)';
+        screenCtx.lineWidth = 1;
+        screenCtx.beginPath();
+        screenCtx.moveTo(w / 3, 0); screenCtx.lineTo(w / 3, h);
+        screenCtx.moveTo(2 * w / 3, 0); screenCtx.lineTo(2 * w / 3, h);
+        screenCtx.moveTo(0, h / 3); screenCtx.lineTo(w, h / 3);
+        screenCtx.moveTo(0, 2 * h / 3); screenCtx.lineTo(w, 2 * h / 3);
+        screenCtx.stroke();
+
+        screenCtx.strokeStyle = 'rgba(202, 138, 4, 0.55)';
+        screenCtx.lineWidth = 1.2;
+        const chSize = 16;
+        screenCtx.beginPath();
+        screenCtx.moveTo(w / 2 - chSize, h / 2); screenCtx.lineTo(w / 2 + chSize, h / 2);
+        screenCtx.moveTo(w / 2, h / 2 - chSize); screenCtx.lineTo(w / 2, h / 2 + chSize);
+        screenCtx.stroke();
+        screenCtx.beginPath();
+        screenCtx.arc(w / 2, h / 2, 4, 0, Math.PI * 2);
+        screenCtx.stroke();
+        screenCtx.restore();
+
+        screenCtx.save();
+        screenCtx.strokeStyle = 'rgba(15, 23, 42, 0.06)';
+        screenCtx.lineWidth = 1;
+        const gridSize = 25;
+        const step = 5;
+        for (let x = -gridSize; x <= gridSize; x += step) {
+          const p1 = projectToCamera(new Vec3(x, -gridSize, 0), frame, w, h);
+          const p2 = projectToCamera(new Vec3(x, gridSize, 0), frame, w, h);
+          if (p1.visible && p2.visible) {
+            screenCtx.beginPath();
+            screenCtx.moveTo(p1.px, p1.py);
+            screenCtx.lineTo(p2.px, p2.py);
+            screenCtx.stroke();
+          }
+        }
+        for (let y = -gridSize; y <= gridSize; y += step) {
+          const p1 = projectToCamera(new Vec3(-gridSize, y, 0), frame, w, h);
+          const p2 = projectToCamera(new Vec3(gridSize, y, 0), frame, w, h);
+          if (p1.visible && p2.visible) {
+            screenCtx.beginPath();
+            screenCtx.moveTo(p1.px, p1.py);
+            screenCtx.lineTo(p2.px, p2.py);
+            screenCtx.stroke();
+          }
+        }
+        screenCtx.restore();
+
+        const pOrigin = projectToCamera(new Vec3(0, 0, 0), frame, w, h);
+        const pX = projectToCamera(new Vec3(10, 0, 0), frame, w, h);
+        const pY = projectToCamera(new Vec3(0, 10, 0), frame, w, h);
+        const pZ = projectToCamera(new Vec3(0, 0, 10), frame, w, h);
+
+        function drawProjAxis(pA, pB, color, label) {
+          if (!pA.visible || !pB.visible) return;
+          screenCtx.save();
+          screenCtx.strokeStyle = color;
+          screenCtx.lineWidth = 2.5;
+          screenCtx.beginPath();
+          screenCtx.moveTo(pA.px, pA.py);
+          screenCtx.lineTo(pB.px, pB.py);
+          screenCtx.stroke();
+
+          screenCtx.font = '600 11px Fira Code';
+          screenCtx.fillStyle = color;
+          screenCtx.fillText(label, pB.px + 6, pB.py + 4);
+          screenCtx.restore();
+        }
+
+        drawProjAxis(pOrigin, pX, '#dc2626', '+X');
+        drawProjAxis(pOrigin, pY, '#059669', '+Y');
+        drawProjAxis(pOrigin, pZ, '#2563eb', '+Z');
+
+        const bMin = new Vec3(5, 5, 5);
+        const bMax = new Vec3(10, 10, 10);
+        const cubeVertices = [
+          new Vec3(bMin.x, bMin.y, bMin.z),
+          new Vec3(bMax.x, bMin.y, bMin.z),
+          new Vec3(bMax.x, bMax.y, bMin.z),
+          new Vec3(bMin.x, bMax.y, bMin.z),
+          new Vec3(bMin.x, bMin.y, bMax.z),
+          new Vec3(bMax.x, bMin.y, bMax.z),
+          new Vec3(bMax.x, bMax.y, bMax.z),
+          new Vec3(bMin.x, bMax.y, bMax.z)
+        ];
+        const cubeEdges = [
+          [0, 1], [1, 2], [2, 3], [3, 0],
+          [4, 5], [5, 6], [6, 7], [7, 4],
+          [0, 4], [1, 5], [2, 6], [3, 7]
+        ];
+
+        const projVerts = cubeVertices.map(v => projectToCamera(v, frame, w, h));
+        screenCtx.save();
+        screenCtx.strokeStyle = 'rgba(5, 150, 105, 0.7)';
+        screenCtx.lineWidth = 1.8;
+        for (const [i, j] of cubeEdges) {
+          if (projVerts[i].visible && projVerts[j].visible) {
+            screenCtx.beginPath();
+            screenCtx.moveTo(projVerts[i].px, projVerts[i].py);
+            screenCtx.lineTo(projVerts[j].px, projVerts[j].py);
+            screenCtx.stroke();
+          }
+        }
+        screenCtx.restore();
+
+        const projP = projectToCamera(state.testPoint, frame, w, h);
+        const hudPointScreen = document.getElementById('hudPointScreen');
+        const hudDepthBadge = document.getElementById('hudDepthBadge');
+
+        if (projP.visible) {
+          screenCtx.save();
+
+          screenCtx.setLineDash([3, 3]);
+          screenCtx.strokeStyle = 'rgba(5, 150, 105, 0.45)';
+          screenCtx.beginPath();
+          screenCtx.moveTo(w / 2, h / 2);
+          screenCtx.lineTo(projP.px, projP.py);
+          screenCtx.stroke();
+
+          screenCtx.fillStyle = '#059669';
+          screenCtx.shadowColor = 'rgba(5, 150, 105, 0.4)';
+          screenCtx.shadowBlur = 12;
+          screenCtx.beginPath();
+          screenCtx.arc(projP.px, projP.py, 7, 0, Math.PI * 2);
+          screenCtx.fill();
+
+          screenCtx.strokeStyle = '#059669';
+          screenCtx.lineWidth = 1.5;
+          screenCtx.beginPath();
+          screenCtx.arc(projP.px, projP.py, 11, 0, Math.PI * 2);
+          screenCtx.stroke();
+
+          screenCtx.shadowBlur = 0;
+          screenCtx.font = '600 12px Fira Code';
+          screenCtx.fillStyle = '#0f172a';
+          const labelText = `P (${Math.round(projP.px)}, ${Math.round(projP.py)})`;
+          screenCtx.fillText(labelText, projP.px + 14, projP.py + 4);
+
+          screenCtx.font = '500 10px Fira Code';
+          screenCtx.fillStyle = '#475569';
+          screenCtx.fillText(`Z_cam: ${projP.zCam.toFixed(1)} units`, projP.px + 14, projP.py + 18);
+
+          screenCtx.restore();
+
+          hudPointScreen.textContent = `Pixel (${Math.round(projP.px)}, ${Math.round(projP.py)})`;
+          hudDepthBadge.style.color = '#059669';
+          hudDepthBadge.innerHTML = `Z_cam (Depth): <strong>${projP.zCam.toFixed(2)} units</strong>`;
+        } else {
+          screenCtx.save();
+          screenCtx.fillStyle = '#dc2626';
+          screenCtx.font = '600 13px Inter';
+          screenCtx.textAlign = 'center';
+          screenCtx.fillText('⚠️ POINT P IS BEHIND THE CAMERA (Z_cam ≤ 0) — CANNOT BE SEEN', w / 2, h / 2 + 60);
+          screenCtx.restore();
+
+          hudPointScreen.textContent = 'Off-screen (Behind Camera)';
+          hudDepthBadge.style.color = '#dc2626';
+          hudDepthBadge.innerHTML = `Z_cam: <strong style="color:#dc2626;">${projP.zCam.toFixed(2)} (Behind!)</strong>`;
+        }
+      }
+
+      function updateFormulaValues(frame) {
+        document.getElementById('hudCamPos').textContent = `(${state.camPos.x.toFixed(1)}, ${state.camPos.y.toFixed(1)}, ${state.camPos.z.toFixed(1)})`;
+        document.getElementById('hudTarget').textContent = `(${state.target.x.toFixed(1)}, ${state.target.y.toFixed(1)}, ${state.target.z.toFixed(1)})`;
+        document.getElementById('text_pt_p').textContent = `P = (${state.testPoint.x.toFixed(1)}, ${state.testPoint.y.toFixed(1)}, ${state.testPoint.z.toFixed(1)})`;
+        document.getElementById('text_fov').textContent = state.fov;
+
+        document.getElementById('calc_target_x').textContent = state.target.x.toFixed(1);
+        document.getElementById('calc_target_y').textContent = state.target.y.toFixed(1);
+        document.getElementById('calc_target_z').textContent = state.target.z.toFixed(1);
+
+        document.getElementById('calc_cam_x').textContent = state.camPos.x.toFixed(1);
+        document.getElementById('calc_cam_y').textContent = state.camPos.y.toFixed(1);
+        document.getElementById('calc_cam_z').textContent = state.camPos.z.toFixed(1);
+
+        document.getElementById('calc_dir_x').textContent = frame.dir.x.toFixed(2);
+        document.getElementById('calc_dir_y').textContent = frame.dir.y.toFixed(2);
+        document.getElementById('calc_dir_z').textContent = frame.dir.z.toFixed(2);
+        document.getElementById('calc_dir_len').textContent = frame.dirLen.toFixed(2);
+
+        document.getElementById('calc_forward_vec').textContent =
+          `(${frame.forward.x.toFixed(2)}, ${frame.forward.y.toFixed(2)}, ${frame.forward.z.toFixed(2)})`;
+
+        document.getElementById('calc_r_raw_x').textContent = frame.rightRaw.x.toFixed(2);
+        document.getElementById('calc_r_raw_y').textContent = frame.rightRaw.y.toFixed(2);
+        document.getElementById('calc_r_raw_z').textContent = frame.rightRaw.z.toFixed(2);
+        document.getElementById('calc_right_vec').textContent =
+          `(${frame.right.x.toFixed(2)}, ${frame.right.y.toFixed(2)}, ${frame.right.z.toFixed(2)})`;
+
+        document.getElementById('calc_trueup_vec').textContent =
+          `(${frame.trueUp.x.toFixed(2)}, ${frame.trueUp.y.toFixed(2)}, ${frame.trueUp.z.toFixed(2)})`;
+
+        document.getElementById('calc_p_x').textContent = state.testPoint.x.toFixed(1);
+        document.getElementById('calc_p_y').textContent = state.testPoint.y.toFixed(1);
+        document.getElementById('calc_p_z').textContent = state.testPoint.z.toFixed(1);
+
+        document.getElementById('calc_c2_x').textContent = state.camPos.x.toFixed(1);
+        document.getElementById('calc_c2_y').textContent = state.camPos.y.toFixed(1);
+        document.getElementById('calc_c2_z').textContent = state.camPos.z.toFixed(1);
+
+        document.getElementById('calc_rel_x').textContent = frame.relP.x.toFixed(2);
+        document.getElementById('calc_rel_y').textContent = frame.relP.y.toFixed(2);
+        document.getElementById('calc_rel_z').textContent = frame.relP.z.toFixed(2);
+
+        document.getElementById('calc_rx_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.right.x.toFixed(2)}`;
+        document.getElementById('calc_ry_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.right.y.toFixed(2)}`;
+        document.getElementById('calc_rz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.right.z.toFixed(2)}`;
+        document.getElementById('calc_xcam_val').textContent = frame.xCam.toFixed(2);
+        document.getElementById('calc_xcam_desc').textContent = frame.xCam >= 0 ? '(Right of camera lens)' : '(Left of camera lens)';
+
+        document.getElementById('calc_ux_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.trueUp.x.toFixed(2)}`;
+        document.getElementById('calc_uy_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.trueUp.y.toFixed(2)}`;
+        document.getElementById('calc_uz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.trueUp.z.toFixed(2)}`;
+        document.getElementById('calc_ycam_val').textContent = frame.yCam.toFixed(2);
+        document.getElementById('calc_ycam_desc').textContent = frame.yCam >= 0 ? '(Above camera lens)' : '(Below camera lens)';
+
+        document.getElementById('calc_fx_term').textContent = `${frame.relP.x.toFixed(1)} * ${frame.forward.x.toFixed(2)}`;
+        document.getElementById('calc_fy_term').textContent = `${frame.relP.y.toFixed(1)} * ${frame.forward.y.toFixed(2)}`;
+        document.getElementById('calc_fz_term').textContent = `${frame.relP.z.toFixed(1)} * ${frame.forward.z.toFixed(2)}`;
+        document.getElementById('calc_zcam_val').textContent = frame.zCam.toFixed(2);
+        document.getElementById('calc_zcam_desc').textContent = frame.zCam > 0 ? `(In FRONT of camera, depth ${frame.zCam.toFixed(2)})` : `(BEHIND camera lens!)`;
+
+        document.getElementById('badge_cam_coords').textContent =
+          `(X_cam: ${frame.xCam.toFixed(2)}, Y_cam: ${frame.yCam.toFixed(2)}, Z_cam: ${frame.zCam.toFixed(2)})`;
+
+        document.getElementById('calc_x_cam_proj').textContent = frame.xCam.toFixed(2);
+        document.getElementById('calc_y_cam_proj').textContent = frame.yCam.toFixed(2);
+        document.getElementById('calc_z_cam_proj').textContent = frame.zCam.toFixed(2);
+        document.getElementById('calc_fov_x').textContent = state.fov;
+        document.getElementById('calc_fov_y').textContent = state.fov;
+
+        document.getElementById('calc_x_screen').textContent = frame.xScreen.toFixed(1);
+        document.getElementById('calc_y_screen').textContent = frame.yScreen.toFixed(1);
+
+        const sW = screenCanvas.parentElement.clientWidth || 640;
+        const sH = screenCanvas.parentElement.clientHeight || 380;
+        document.getElementById('calc_cw_half').textContent = (sW / 2).toFixed(0);
+        document.getElementById('calc_ch_half').textContent = (sH / 2).toFixed(0);
+        document.getElementById('calc_xs_val').textContent = frame.xScreen.toFixed(1);
+        document.getElementById('calc_ys_val').textContent = frame.yScreen.toFixed(1);
+
+        document.getElementById('calc_pixel_x').textContent = frame.pixelX.toFixed(1);
+        document.getElementById('calc_pixel_y').textContent = frame.pixelY.toFixed(1);
+
+        document.getElementById('m00').textContent = frame.right.x.toFixed(2);
+        document.getElementById('m01').textContent = frame.right.y.toFixed(2);
+        document.getElementById('m02').textContent = frame.right.z.toFixed(2);
+        document.getElementById('m03').textContent = (-frame.right.dot(state.camPos)).toFixed(2);
+
+        document.getElementById('m10').textContent = frame.trueUp.x.toFixed(2);
+        document.getElementById('m11').textContent = frame.trueUp.y.toFixed(2);
+        document.getElementById('m12').textContent = frame.trueUp.z.toFixed(2);
+        document.getElementById('m13').textContent = (-frame.trueUp.dot(state.camPos)).toFixed(2);
+
+        document.getElementById('m20').textContent = frame.forward.x.toFixed(2);
+        document.getElementById('m21').textContent = frame.forward.y.toFixed(2);
+        document.getElementById('m22').textContent = frame.forward.z.toFixed(2);
+        document.getElementById('m23').textContent = (-frame.forward.dot(state.camPos)).toFixed(2);
+      }
+
+      function update() {
+        const frame = computeCameraFrame();
+        renderWorldView(frame);
+        renderCameraScreen(frame);
+        updateFormulaValues(frame);
+      }
+
+      function animate() {
+        if (state.isAutoOrbit) {
+          state.orbitAngle += 0.008;
+          state.camPos.x = state.orbitRadius * Math.cos(state.orbitAngle);
+          state.camPos.y = state.orbitRadius * Math.sin(state.orbitAngle);
+
+          camXSlider.value = state.camPos.x;
+          camYSlider.value = state.camPos.y;
+          valCamX.textContent = state.camPos.x.toFixed(1);
+          valCamY.textContent = state.camPos.y.toFixed(1);
+        }
+        update();
+        requestAnimationFrame(animate);
+      }
+
+      camXSlider.addEventListener('input', (e) => {
+        state.camPos.x = parseFloat(e.target.value);
+        valCamX.textContent = state.camPos.x.toFixed(1);
+        state.orbitRadius = Math.sqrt(state.camPos.x ** 2 + state.camPos.y ** 2);
+        state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+        clearActivePreset();
+      });
+
+      camYSlider.addEventListener('input', (e) => {
+        state.camPos.y = parseFloat(e.target.value);
+        valCamY.textContent = state.camPos.y.toFixed(1);
+        state.orbitRadius = Math.sqrt(state.camPos.x ** 2 + state.camPos.y ** 2);
+        state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+        clearActivePreset();
+      });
+
+      camZSlider.addEventListener('input', (e) => {
+        state.camPos.z = parseFloat(e.target.value);
+        valCamZ.textContent = state.camPos.z.toFixed(1);
+        clearActivePreset();
+      });
+
+      targetZSlider.addEventListener('input', (e) => {
+        state.target.z = parseFloat(e.target.value);
+        valTargetZ.textContent = state.target.z.toFixed(1);
+      });
+
+      fovSlider.addEventListener('input', (e) => {
+        state.fov = parseInt(e.target.value);
+        valFov.textContent = state.fov;
+      });
+
+      ptXSlider.addEventListener('input', (e) => {
+        state.testPoint.x = parseFloat(e.target.value);
+        valPtX.textContent = state.testPoint.x.toFixed(1);
+      });
+
+      ptYSlider.addEventListener('input', (e) => {
+        state.testPoint.y = parseFloat(e.target.value);
+        valPtY.textContent = state.testPoint.y.toFixed(1);
+      });
+
+      ptZSlider.addEventListener('input', (e) => {
+        state.testPoint.z = parseFloat(e.target.value);
+        valPtZ.textContent = state.testPoint.z.toFixed(1);
+      });
+
+      function clearActivePreset() {
+        presetButtons.forEach(btn => btn.classList.remove('active'));
+      }
+
+      const presets = {
+        default: { cam: new Vec3(20, -20, 20), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+        front: { cam: new Vec3(0, -32, 5), target: new Vec3(0, 0, 5), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+        top: { cam: new Vec3(0.01, -0.01, 35), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+        isometric: { cam: new Vec3(25, -25, 25), target: new Vec3(0, 0, 0), pt: new Vec3(7.5, 7.5, 7.5), fov: 400 },
+        side: { cam: new Vec3(32, 0, 5), target: new Vec3(0, 0, 5), pt: new Vec3(7.5, 7.5, 7.5), fov: 450 },
+        close: { cam: new Vec3(14, -10, 14), target: new Vec3(7.5, 7.5, 7.5), pt: new Vec3(7.5, 7.5, 7.5), fov: 500 }
+      };
+
+      presetButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          clearActivePreset();
+          btn.classList.add('active');
+          const p = presets[btn.dataset.preset];
+          if (p) {
+            state.camPos = p.cam.clone();
+            state.target = p.target.clone();
+            state.testPoint = p.pt.clone();
+            state.fov = p.fov;
+
+            camXSlider.value = state.camPos.x;
+            camYSlider.value = state.camPos.y;
+            camZSlider.value = state.camPos.z;
+            targetZSlider.value = state.target.z;
+            fovSlider.value = state.fov;
+            ptXSlider.value = state.testPoint.x;
+            ptYSlider.value = state.testPoint.y;
+            ptZSlider.value = state.testPoint.z;
+
+            valCamX.textContent = state.camPos.x.toFixed(1);
+            valCamY.textContent = state.camPos.y.toFixed(1);
+            valCamZ.textContent = state.camPos.z.toFixed(1);
+            valTargetZ.textContent = state.target.z.toFixed(1);
+            valFov.textContent = state.fov;
+            valPtX.textContent = state.testPoint.x.toFixed(1);
+            valPtY.textContent = state.testPoint.y.toFixed(1);
+            valPtZ.textContent = state.testPoint.z.toFixed(1);
+
+            state.orbitRadius = Math.sqrt(state.camPos.x ** 2 + state.camPos.y ** 2);
+            state.orbitAngle = Math.atan2(state.camPos.y, state.camPos.x);
+          }
+        });
+      });
+
+      btnAutoOrbit.addEventListener('click', () => {
+        state.isAutoOrbit = !state.isAutoOrbit;
+        btnAutoOrbit.classList.toggle('btn-active', state.isAutoOrbit);
+        autoOrbitText.textContent = state.isAutoOrbit ? 'Stop Orbit' : 'Auto-Orbit Camera';
+      });
+
+      btnResetAll.addEventListener('click', () => {
+        document.querySelector('[data-preset="default"]').click();
+        state.isAutoOrbit = false;
+        btnAutoOrbit.classList.remove('btn-active');
+        autoOrbitText.textContent = 'Auto-Orbit Camera';
+        state.godYaw = -0.65;
+        state.godPitch = 0.52;
+        state.godDist = 65;
+      });
+
+      const worldWrapper = document.getElementById('worldCanvasWrapper');
+      worldWrapper.addEventListener('mousedown', (e) => {
+        state.isDraggingGod = true;
+        state.lastMouseX = e.clientX;
+        state.lastMouseY = e.clientY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!state.isDraggingGod) return;
+        const dx = e.clientX - state.lastMouseX;
+        const dy = e.clientY - state.lastMouseY;
+        state.lastMouseX = e.clientX;
+        state.lastMouseY = e.clientY;
+
+        state.godYaw += dx * 0.008;
+        state.godPitch += dy * 0.008;
+        state.godPitch = Math.max(0.05, Math.min(Math.PI / 2 - 0.05, state.godPitch));
+      });
+
+      window.addEventListener('mouseup', () => {
+        state.isDraggingGod = false;
+      });
+
+      worldWrapper.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        state.godDist += e.deltaY * 0.05;
+        state.godDist = Math.max(25, Math.min(150, state.godDist));
+      }, { passive: false });
+
+      window.addEventListener('resize', resizeCanvases);
+
+      resizeCanvases();
+      renderMath();
+      animate();
+    })();
+  </script>
+
+  <!-- =========================================================================
+       SCRIPT 3: PROBLEM SELECTION LOGIC
+       ========================================================================= -->
+  <script>
+    (function () {
+      const selector = document.getElementById('problemSelector');
+      const screens = {
+        'coordinate': document.getElementById('screen-coordinate'),
+        'vector-2d': document.getElementById('screen-vector-2d'),
+        'complex-derivation': document.getElementById('screen-complex-derivation'),
+        'iteration': document.getElementById('screen-iteration'),
+        'camera': document.getElementById('screen-camera')
+      };
+
+      function switchProblem(value) {
+        Object.keys(screens).forEach(key => {
+          if (screens[key]) {
+            screens[key].classList.toggle('active', key === value);
+          }
+        });
+
+        if (value === 'camera') {
+          requestAnimationFrame(() => {
+            if (window.resizeCameraCanvases) {
+              window.resizeCameraCanvases();
+            }
+          });
+        }
+      }
+
+      window.selectProblemScreen = function (value) {
+        selector.value = value;
+        switchProblem(value);
+      };
+
+      selector.addEventListener('change', (e) => {
+        switchProblem(e.target.value);
+      });
+    })();
+  </script>
+</body>
+</html>
+
