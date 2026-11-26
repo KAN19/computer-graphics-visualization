@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>8. Triangle Strip 3D Visualizer (Cube &amp; Degenerate Triangles)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #f1f5f9;
+      --border-subtle: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .app-container {
+      padding: 18px 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .strip-lab-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .strip-lab-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .strip-lab-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .strip-mode-btn {
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .strip-mode-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: #94a3b8;
+    }
+
+    .strip-mode-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    .strip-step-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .strip-step-bar input[type="range"] {
+      width: 160px;
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+
+    .strip-step-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .strip-step-btn:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .strip-lab-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 900px) {
+      .strip-lab-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .strip-canvas-wrap {
+      position: relative;
+      height: 460px;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .strip-canvas-wrap canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    .strip-canvas-wrap canvas:active {
+      cursor: grabbing;
+    }
+
+    .hud-bottom-hint {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.88);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      pointer-events: none;
+    }
+
+    .strip-info-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .strip-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .formula-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+
+    .strip-vert-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+    }
+
+    .strip-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .strip-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+
+    .strip-all-section {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .strip-all-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 8px;
+    }
+
+    .strip-tri-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: all 0.14s ease;
+    }
+
+    .strip-tri-item:hover {
+      background: var(--bg-card-hover);
+      border-color: #94a3b8;
+    }
+
+    .strip-tri-item.active {
+      background: rgba(2, 132, 199, 0.08);
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.12);
+    }
+
+    .strip-tri-item.degenerate {
+      opacity: 0.72;
+      border-style: dashed;
+    }
+
+    .strip-tri-coords {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Lab 08</span>
+      <div>
+        <h1>Triangle Strip 3D Visualizer (Cube &amp; Degenerate Triangles)</h1>
+        <div class="brand-sub">Step-by-step 3D visualization of how WebGPU/WebGL builds surfaces from a triangle strip</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div class="strip-lab-card">
+      <div class="strip-lab-header">
+        <div class="strip-lab-controls">
+          <button type="button" class="strip-mode-btn active" data-strip-mode="fixed4">4 Walls (0,0,3)</button>
+          <button type="button" class="strip-mode-btn" data-strip-mode="cube14">6-Face Cube (14 Vertices)</button>
+          <button type="button" class="strip-mode-btn" data-strip-mode="cube20">4 Walls + 2 Caps (20 Vertices)</button>
+        </div>
+        <div class="strip-step-bar">
+          <button type="button" class="strip-step-btn" id="stripPrevBtn">◀</button>
+          <input type="range" id="stripStepSlider" min="1" max="8" value="8">
+          <button type="button" class="strip-step-btn" id="stripNextBtn">▶</button>
+          <span id="stripStepLabel" style="font-family: 'Fira Code', monospace; min-width: 60px; text-align: right; font-weight: 600;">8 / 8</span>
+        </div>
+      </div>
+
+      <div class="strip-lab-grid">
+        <div class="strip-canvas-wrap">
+          <canvas id="stripCanvas"></canvas>
+          <div class="hud-bottom-hint">Drag to orbit 3D view | Mouse wheel to zoom</div>
+        </div>
+
+        <div class="strip-info-col">
+          <div class="strip-panel">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <strong id="stripTriTitle" style="font-size: 0.96rem; color: #0f172a;">Triangle #8</strong>
+              <span id="stripTriFace" class="formula-tag">Left Face</span>
+            </div>
+            <div id="stripVertList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            <div id="stripTriNote" style="font-size: 0.83rem; line-height: 1.55; color: var(--text-muted); padding-top: 8px; border-top: 1px solid var(--border-subtle);"></div>
+          </div>
+
+          <div class="strip-panel">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #0f172a;">How Triangle Strips Work</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+              The GPU slides a 3-vertex window along the vertex array: the <strong>last 2 vertices</strong> of the previous triangle act as a <em>hinge edge</em> connecting to the <strong>new vertex</strong>. To jump to a disconnected face (such as wrapping 4 walls first, then jumping to the top/bottom caps), repeat vertices to form zero-area <em>degenerate triangles</em> that the GPU skips.
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; padding-top: 4px;">
+              <span class="strip-legend-row"><span class="strip-dot" style="background:#f59e0b;"></span> 2 hinge vertices</span>
+              <span class="strip-legend-row"><span class="strip-dot" style="background:#10b981;"></span> New vertex</span>
+              <span class="strip-legend-row"><span class="strip-dot" style="background:#3b82f6;"></span> Active triangle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="strip-all-section">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <strong style="font-size: 0.88rem; color: #0f172a;">All Triangles in Strip (<span id="stripAllCount">8</span>)</strong>
+          <span style="font-size: 0.76rem; color: var(--text-dim);">Click any triangle to inspect it in 3D</span>
+        </div>
+        <div id="stripAllList" class="strip-all-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Computer Graphics Lab &mdash; Interactive 3D Triangle Strip Visualizer
+  </footer>
+
+  <script>
+    (function () {
+      const STRIP_MODES = {
+        fixed4: {
+          verts: [
+            [0,0,0], [0,0,3], [3,0,0], [3,0,3],
+            [3,3,0], [3,3,3], [0,3,0], [0,3,3],
+            [0,0,0], [0,0,3]
+          ],
+          notes: [
+            { face: "Front Face (1/2)", text: "First 3 vertices (v0, v1, v2) form the lower half of the front face." },
+            { face: "Front Face (2/2)", text: "Connects hinge (v1, v2) to v3 (3,0,3) → finishes the front face." },
+            { face: "Right Face (1/2)", text: "Vertical hinge (v2, v3) extends to v4 (3,3,0)." },
+            { face: "Right Face (2/2)", text: "Connects to v5 (3,3,3) → finishes the right face." },
+            { face: "Back Face (1/2)", text: "Vertical hinge (v4, v5) extends to v6 (0,3,0)." },
+            { face: "Back Face (2/2)", text: "Connects to v7 (0,3,3) → finishes the back face." },
+            { face: "Left Face (1/2)", text: "Vertical hinge (v6, v7) connects to v8 (0,0,0) → lower half of the left face." },
+            { face: "Left Face (2/2) ✓", text: "v9 is (0,0,3) — the top-front corner! Cleanly closes all 4 surrounding walls." }
+          ]
+        },
+        cube14: {
+          verts: [
+            [0,3,3], [3,3,3], [0,0,3], [3,0,3],
+            [3,0,0], [3,3,3], [3,3,0], [0,3,3],
+            [0,3,0], [0,0,3], [0,0,0], [3,0,0],
+            [0,3,0], [3,3,0]
+          ],
+          notes: [
+            { face: "Top Cap (1/2)", text: "Starts on the top face (z = 3)." },
+            { face: "Top Cap (2/2)", text: "Closes the top face." },
+            { face: "Front Face (1/2)", text: "Drops down to z = 0 for the first half of the front face." },
+            { face: "Right Face (1/2)", text: "Turns backward to cover the right face." },
+            { face: "Right Face (2/2)", text: "Closes the right face." },
+            { face: "Back Face (1/2)", text: "Crosses across the back face." },
+            { face: "Back Face (2/2)", text: "Closes the back face." },
+            { face: "Left Face (1/2)", text: "Pulls forward along the left face." },
+            { face: "Left Face (2/2)", text: "Closes the left face." },
+            { face: "Front Face (2/2)", text: "Completes the remaining half of the front face." },
+            { face: "Bottom Cap (1/2)", text: "Folds underneath onto the bottom face (z = 0)." },
+            { face: "Bottom Cap (2/2) ✓", text: "Closes the bottom face — all 6 cube faces complete in 14 vertices!" }
+          ]
+        },
+        cube20: {
+          verts: [
+            [0,0,0], [0,0,3], [3,0,0], [3,0,3],
+            [3,3,0], [3,3,3], [0,3,0], [0,3,3],
+            [0,0,0], [0,0,3],
+            [0,0,3], [3,0,3], [0,3,3], [3,3,3],
+            [3,3,3], [0,0,0], [0,0,0], [3,0,0], [0,3,0], [3,3,0]
+          ],
+          notes: [
+            { face: "Front Face (1/2)", text: "Wrapping 4 walls first: starts the front face." },
+            { face: "Front Face (2/2)", text: "Finishes the front face." },
+            { face: "Right Face (1/2)", text: "Moves onto the right face." },
+            { face: "Right Face (2/2)", text: "Finishes the right face." },
+            { face: "Back Face (1/2)", text: "Moves onto the back face." },
+            { face: "Back Face (2/2)", text: "Finishes the back face." },
+            { face: "Left Face (1/2)", text: "Moves onto the left face." },
+            { face: "Left Face (2/2)", text: "All 4 surrounding walls are now closed." },
+            { face: "Degenerate (hidden)", text: "Repeats (0,0,3) to form a zero-area triangle and jump to the top cap." },
+            { face: "Degenerate (hidden)", text: "Sets up horizontal hinge (0,0,3)-(3,0,3) on the top cap (hidden)." },
+            { face: "Top Cap (1/2)", text: "Draws the first half of the top cap (z = 3)." },
+            { face: "Top Cap (2/2)", text: "Closes the top cap." },
+            { face: "Degenerate (hidden)", text: "Repeats (3,3,3) to prepare the jump down to the bottom cap." },
+            { face: "Degenerate (hidden)", text: "Jumps to bottom corner (0,0,0) with zero area." },
+            { face: "Degenerate (hidden)", text: "Repeats (0,0,0) to prevent any diagonal slice through the cube." },
+            { face: "Degenerate (hidden)", text: "Sets up horizontal hinge (0,0,0)-(3,0,0) on the bottom cap (hidden)." },
+            { face: "Bottom Cap (1/2)", text: "Draws the first half of the bottom cap (z = 0)." },
+            { face: "Bottom Cap (2/2) ✓", text: "Closes the bottom cap — 6-face cube complete in 4-walls → 2-caps order!" }
+          ]
+        }
+      };
+
+      let sMode = "fixed4";
+      let sStep = 8;
+      let sYaw = -0.75, sPitch = 0.45, sScaleMul = 1;
+
+      const sCanvas = document.getElementById("stripCanvas");
+      const sCtx = sCanvas.getContext("2d");
+      const sSlider = document.getElementById("stripStepSlider");
+      const sStepLabel = document.getElementById("stripStepLabel");
+      const sTriTitle = document.getElementById("stripTriTitle");
+      const sTriFace = document.getElementById("stripTriFace");
+      const sVertList = document.getElementById("stripVertList");
+      const sTriNote = document.getElementById("stripTriNote");
+      const sAllCount = document.getElementById("stripAllCount");
+      const sAllList = document.getElementById("stripAllList");
+
+      function setStripMode(m) {
+        sMode = m;
+        const total = STRIP_MODES[sMode].verts.length - 2;
+        sSlider.max = total;
+        sStep = total;
+        sSlider.value = sStep;
+        document.querySelectorAll(".strip-mode-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.stripMode === sMode);
+        });
+        updateStripUI();
+        drawStrip();
+      }
+
+      function updateStripUI() {
+        const data = STRIP_MODES[sMode];
+        const total = data.verts.length - 2;
+        sStep = Math.max(1, Math.min(total, sStep));
+        sSlider.value = sStep;
+        sStepLabel.textContent = `${sStep} / ${total}`;
+
+        const i = sStep - 1;
+        const vA = data.verts[i], vB = data.verts[i + 1], vC = data.verts[i + 2];
+        const info = data.notes[i];
+
+        sTriTitle.textContent = `Triangle #${sStep}`;
+        sTriFace.textContent = info.face;
+        sTriNote.textContent = info.text;
+
+        sVertList.innerHTML = [
+          { lbl: `v${i} (hinge)`, v: vA, col: "#f59e0b" },
+          { lbl: `v${i + 1} (hinge)`, v: vB, col: "#f59e0b" },
+          { lbl: `v${i + 2} (new)`, v: vC, col: "#10b981" }
+        ].map(item => `
+          <div class="strip-vert-row">
+            <span style="display:flex; align-items:center; gap:7px;">
+              <span class="strip-dot" style="background:${item.col};"></span>
+              <span>${item.lbl}</span>
+            </span>
+            <span>(${item.v.join(", ")})</span>
+          </div>
+        `).join("");
+
+        sAllCount.textContent = total;
+        sAllList.innerHTML = Array.from({ length: total }, (_, idx) => {
+          const a = data.verts[idx], b = data.verts[idx + 1], c = data.verts[idx + 2];
+          const nInfo = data.notes[idx];
+          const isDegen = nInfo.face.includes("Degenerate");
+          const isActive = idx === i;
+          return `
+            <button type="button" class="strip-tri-item${isActive ? " active" : ""}${isDegen ? " degenerate" : ""}" data-step-idx="${idx + 1}">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;">
+                <strong style="font-size:0.78rem; color:#0f172a;">#${idx + 1} (v${idx}, v${idx + 1}, v${idx + 2})</strong>
+                <span class="formula-tag" style="font-size:0.68rem;">${nInfo.face}</span>
+              </div>
+              <div class="strip-tri-coords">(${a.join(",")}) → (${b.join(",")}) → (${c.join(",")})</div>
+            </button>
+          `;
+        }).join("");
+
+        sAllList.querySelectorAll(".strip-tri-item").forEach(btn => {
+          btn.addEventListener("click", () => {
+            sStep = +btn.dataset.stepIdx;
+            updateStripUI();
+            drawStrip();
+          });
+        });
+      }
+
+      function projStrip(p, w, h) {
+        const cx = p[0] - 1.5, cy = p[1] - 1.5, cz = p[2] - 1.5;
+        const cosY = Math.cos(sYaw), sinY = Math.sin(sYaw);
+        const x1 = cx * cosY - cy * sinY;
+        const y1 = cx * sinY + cy * cosY;
+        const cosP = Math.cos(sPitch), sinP = Math.sin(sPitch);
+        const y2 = y1 * cosP - cz * sinP;
+        const z2 = y1 * sinP + cz * cosP;
+        const scale = Math.min(w, h) * 0.14 * sScaleMul;
+        const dist = 10;
+        const f = dist / (dist - y2);
+        return [w / 2 + x1 * scale * f, h / 2 - z2 * scale * f, y2];
+      }
+
+      function drawStrip() {
+        const rect = sCanvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = window.devicePixelRatio || 1;
+        sCanvas.width = rect.width * dpr;
+        sCanvas.height = rect.height * dpr;
+        sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const w = rect.width, h = rect.height;
+        sCtx.clearRect(0, 0, w, h);
+
+        const o = projStrip([0, 0, 0], w, h);
+        [
+          { to: [4.2, 0, 0], col: "#dc2626", lbl: "X" },
+          { to: [0, 4.2, 0], col: "#059669", lbl: "Y" },
+          { to: [0, 0, 4.2], col: "#2563eb", lbl: "Z" }
+        ].forEach(a => {
+          const p = projStrip(a.to, w, h);
+          sCtx.strokeStyle = a.col;
+          sCtx.lineWidth = 1.6;
+          sCtx.beginPath(); sCtx.moveTo(o[0], o[1]); sCtx.lineTo(p[0], p[1]); sCtx.stroke();
+          sCtx.fillStyle = a.col;
+          sCtx.font = "bold 12px Inter, sans-serif";
+          sCtx.fillText(a.lbl, p[0] + 5, p[1] + 4);
+        });
+
+        const edges = [
+          [[0,0,0],[3,0,0]], [[3,0,0],[3,3,0]], [[3,3,0],[0,3,0]], [[0,3,0],[0,0,0]],
+          [[0,0,3],[3,0,3]], [[3,0,3],[3,3,3]], [[3,3,3],[0,3,3]], [[0,3,3],[0,0,3]],
+          [[0,0,0],[0,0,3]], [[3,0,0],[3,0,3]], [[3,3,0],[3,3,3]], [[0,3,0],[0,3,3]]
+        ];
+        sCtx.strokeStyle = "#94a3b8";
+        sCtx.globalAlpha = 0.45;
+        sCtx.setLineDash([4, 4]);
+        sCtx.lineWidth = 1;
+        edges.forEach(([a, b]) => {
+          const pa = projStrip(a, w, h), pb = projStrip(b, w, h);
+          sCtx.beginPath(); sCtx.moveTo(pa[0], pa[1]); sCtx.lineTo(pb[0], pb[1]); sCtx.stroke();
+        });
+        sCtx.setLineDash([]);
+        sCtx.globalAlpha = 1;
+
+        const verts = STRIP_MODES[sMode].verts;
+        const tris = [];
+        for (let t = 0; t < sStep; t++) {
+          const p0 = projStrip(verts[t], w, h);
+          const p1 = projStrip(verts[t + 1], w, h);
+          const p2 = projStrip(verts[t + 2], w, h);
+          tris.push({ t, pts: [p0, p1, p2], depth: (p0[2] + p1[2] + p2[2]) / 3 });
+        }
+        tris.sort((a, b) => a.depth - b.depth);
+
+        tris.forEach(({ t, pts }) => {
+          const isCurrent = t === sStep - 1;
+          sCtx.beginPath();
+          sCtx.moveTo(pts[0][0], pts[0][1]);
+          sCtx.lineTo(pts[1][0], pts[1][1]);
+          sCtx.lineTo(pts[2][0], pts[2][1]);
+          sCtx.closePath();
+          if (isCurrent) {
+            sCtx.fillStyle = "rgba(37, 99, 235, 0.45)";
+            sCtx.strokeStyle = "#2563eb";
+            sCtx.lineWidth = 2.2;
+          } else {
+            sCtx.fillStyle = "rgba(100, 116, 139, 0.18)";
+            sCtx.strokeStyle = "rgba(100, 116, 139, 0.55)";
+            sCtx.lineWidth = 1;
+          }
+          sCtx.fill();
+          sCtx.stroke();
+        });
+
+        const cur = sStep - 1;
+        [
+          { idx: cur, col: "#f59e0b", lbl: `v${cur}` },
+          { idx: cur + 1, col: "#f59e0b", lbl: `v${cur + 1}` },
+          { idx: cur + 2, col: "#10b981", lbl: `v${cur + 2}` }
+        ].forEach(pt => {
+          const p = projStrip(verts[pt.idx], w, h);
+          sCtx.fillStyle = pt.col;
+          sCtx.beginPath(); sCtx.arc(p[0], p[1], 5.5, 0, Math.PI * 2); sCtx.fill();
+          sCtx.strokeStyle = "#ffffff"; sCtx.lineWidth = 1.6; sCtx.stroke();
+          sCtx.fillStyle = "#0f172a";
+          sCtx.font = "bold 11px 'Fira Code', monospace";
+          sCtx.fillText(pt.lbl, p[0] + 8, p[1] - 6);
+        });
+      }
+
+      document.querySelectorAll(".strip-mode-btn").forEach(btn => {
+        btn.addEventListener("click", () => setStripMode(btn.dataset.stripMode));
+      });
+      sSlider.addEventListener("input", e => { sStep = +e.target.value; updateStripUI(); drawStrip(); });
+      document.getElementById("stripPrevBtn").addEventListener("click", () => { sStep--; updateStripUI(); drawStrip(); });
+      document.getElementById("stripNextBtn").addEventListener("click", () => { sStep++; updateStripUI(); drawStrip(); });
+
+      let sDrag = false, sLx = 0, sLy = 0;
+      sCanvas.addEventListener("mousedown", e => { sDrag = true; sLx = e.clientX; sLy = e.clientY; });
+      window.addEventListener("mouseup", () => { sDrag = false; });
+      window.addEventListener("mousemove", e => {
+        if (!sDrag) return;
+        sYaw += (e.clientX - sLx) * 0.012;
+        sPitch = Math.max(-1.4, Math.min(1.4, sPitch + (e.clientY - sLy) * 0.012));
+        sLx = e.clientX; sLy = e.clientY;
+        drawStrip();
+      });
+      sCanvas.addEventListener("wheel", e => {
+        e.preventDefault();
+        sScaleMul = Math.max(0.5, Math.min(2.2, sScaleMul - e.deltaY * 0.001));
+        drawStrip();
+      }, { passive: false });
+      window.addEventListener("resize", drawStrip);
+
+      setStripMode("fixed4");
+    })();
+  </script>
+</body>
+</html>

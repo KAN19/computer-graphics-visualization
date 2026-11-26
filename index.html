@@ -221,7 +221,7 @@
       <span class="switcher-label">Select Problem:</span>
       <div class="custom-dropdown" id="problemDropdown">
         <button type="button" class="dropdown-trigger" id="dropdownTrigger" aria-haspopup="listbox" aria-expanded="false">
-          <span class="dropdown-trigger-text" id="dropdownLabel">1. Mathematical to Graphical Coordinate Converter (2D Canvas)</span>
+          <span class="dropdown-trigger-text" id="dropdownLabel">1. Camera Coordinate System &amp; 3D Viewpoint (LookAt)</span>
           <svg class="dropdown-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 9 6 6 6-6"/>
           </svg>
@@ -238,39 +238,44 @@
     (function () {
       const PROBLEMS = [
         {
+          key: 'camera',
+          label: '1. Camera Coordinate System & 3D Viewpoint (LookAt)',
+          file: 'problems/07-camera.html'
+        },
+        {
           key: 'coordinate',
-          label: '1. Mathematical to Graphical Coordinate Converter (2D Canvas)',
+          label: '2. Mathematical to Graphical Coordinate Converter (2D Canvas)',
           file: 'problems/01-coordinate.html'
         },
         {
           key: 'vector-2d',
-          label: '2. 2D Vector Multiplication (Turning & Stretching)',
+          label: '3. 2D Vector Multiplication (Turning & Stretching)',
           file: 'problems/02-vector-2d.html'
         },
         {
           key: 'complex-derivation',
-          label: '3. Complex Numbers: Explaining the Magic Formula (1, i, i² = -1)',
+          label: '4. Complex Numbers: Explaining the Magic Formula (1, i, i² = -1)',
           file: 'problems/03-complex-derivation.html'
         },
         {
           key: 'iteration',
-          label: '4. Complex Iteration Lab: f(z) = z² + c (Sequence & Animation)',
+          label: '5. Complex Iteration Lab: f(z) = z² + c (Sequence & Animation)',
           file: 'problems/04-iteration.html'
         },
         {
           key: 'ndc-triangle',
-          label: '5. WebGPU Clip Space, NDC & Missing Triangle Lab',
+          label: '6. WebGPU Clip Space, NDC & Missing Triangle Lab',
           file: 'problems/05-ndc-triangle.html'
         },
         {
           key: 'coord-orbit',
-          label: '6. 3D Coordinate System: Auto-Rotate, Pause, Mouse & Keys',
+          label: '7. 3D Coordinate System: Auto-Rotate, Pause, Mouse & Keys',
           file: 'problems/06-coord-orbit.html'
         },
         {
-          key: 'camera',
-          label: '7. Camera Coordinate System & 3D Viewpoint (LookAt)',
-          file: 'problems/07-camera.html'
+          key: 'triangle-strip',
+          label: '8. Triangle Strip 3D Visualizer (Cube & Degenerate Triangles)',
+          file: 'problems/08-triangle-strip.html'
         }
       ];
 
