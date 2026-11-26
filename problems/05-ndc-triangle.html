@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5. WebGPU Clip Space, NDC &amp; Missing Triangle Lab</title>
+
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for crisp LaTeX equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #f1f5f9;
+      --border-subtle: #e2e8f0;
+      --border-focus: rgba(2, 132, 199, 0.5);
+
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      /* Axes & Highlight Colors (aligned with CGV Lab) */
+      --world-x: #dc2626;
+      --world-y: #059669;
+      --world-z: #2563eb;
+      --color-eye: #d97706;
+      --color-screen: #0284c7;
+      --color-forward: #c026d3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .katex {
+      font-size: 1.02em;
+      color: #1e293b;
+    }
+
+    .katex-display {
+      margin: 8px 0 12px 0 !important;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    .math-card .katex {
+      font-size: 0.95em;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #0f172a;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 18px 24px;
+      flex: 1;
+      max-width: 1920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .viewport-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: minmax(380px, 0.92fr) minmax(440px, 1.08fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .controls-col {
+      position: sticky;
+      top: 76px;
+    }
+
+    @media (max-width: 1100px) {
+      .viewport-col,
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls-col {
+        position: static;
+      }
+    }
+
+    .viewport-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+      position: relative;
+    }
+
+    .viewport-header {
+      padding: 10px 16px;
+      min-height: 46px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .viewport-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .viewport-legend {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      flex: 1;
+      background: #ffffff;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .canvas-wrapper:active {
+      cursor: grabbing;
+    }
+
+    .canvas-wrapper.no-drag {
+      cursor: default;
+      height: 380px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hud-badge {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-muted);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+
+    .hud-badge strong {
+      color: #0f172a;
+    }
+
+    .hud-bottom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      pointer-events: none;
+      font-size: 0.72rem;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .status-pill {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .status-ok {
+      background: rgba(5, 150, 105, 0.12);
+      color: #059669;
+      border: 1px solid rgba(5, 150, 105, 0.35);
+    }
+
+    .status-bad {
+      background: rgba(220, 38, 38, 0.12);
+      color: #dc2626;
+      border: 1px solid rgba(220, 38, 38, 0.35);
+    }
+
+    /* Math Cards Column */
+    .math-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .controls-card,
+    .math-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .preset-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .pill-btn {
+      font-size: 0.75rem;
+      padding: 5px 11px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .pill-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .pill-btn.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+
+    .vertex-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 680px) {
+      .vertex-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .vertex-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .vertex-box.v0 { border-top: 3px solid #dc2626; }
+    .vertex-box.v1 { border-top: 3px solid #059669; }
+    .vertex-box.v2 { border-top: 3px solid #2563eb; }
+
+    .vertex-head {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .v-slider-row {
+      display: grid;
+      grid-template-columns: 16px 1fr 44px;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+    }
+
+    .v-slider-row label {
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .v-slider-row input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .v-slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(2, 132, 199, 0.4);
+    }
+
+    .v-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.73rem;
+      font-weight: 600;
+      text-align: right;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid rgba(2, 132, 199, 0.2);
+    }
+
+    .math-step-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    .math-card-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .math-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .formula-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.77rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .f-comment {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .f-num {
+      color: #b45309;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .f-highlight {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+
+    .result-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border-left: 3px solid #0284c7;
+      font-size: 0.79rem;
+      line-height: 1.45;
+      color: #1e293b;
+    }
+
+    .result-badge.warn {
+      border-left-color: #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .result-badge.good {
+      border-left-color: #059669;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    footer {
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-badge">WebGPU &amp; Clip Space</span>
+      <div>
+        <h1>WebGPU Clip Space, NDC &amp; Why the Triangle Disappears</h1>
+        <div class="brand-sub">Interactive 3D NDC box, default +Z sightline, 2D projection area &amp; back-face culling</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btnResetOrbit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Reset 3D Orbit
+      </button>
+      <button class="btn" id="btnResetAll">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset All
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <!-- Left Column: Dual Viewports -->
+    <div class="viewport-col">
+      <!-- Viewport 1: 3D NDC Box + Eye -->
+      <div class="viewport-card">
+        <div class="viewport-header">
+          <div class="viewport-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            1. 3D NDC Volume &amp; Default Eye Sightline
+          </div>
+          <div class="viewport-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--world-x);"></span> +X (Right)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--world-y);"></span> +Y (Up)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--world-z);"></span> +Z (Depth)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-eye);"></span> Eye (+Z)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-screen);"></span> Screen (z = 0)</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper" id="canvas3dWrapper">
+          <canvas id="canvas3d"></canvas>
+          <div class="viewport-overlay">
+            <div class="hud-badge">NDC Bounds: <strong>x, y &isin; [-1, 1], z &isin; [0, 1]</strong></div>
+            <div class="hud-badge">Shader Output: <strong>vec4&lt;f32&gt;(in.position, 1.0)</strong></div>
+          </div>
+          <div class="hud-bottom-hint">Left-click &amp; drag to orbit 3D box | Mouse wheel to zoom</div>
+        </div>
+      </div>
+
+      <!-- Viewport 2: 2D Rasterized WebGPU Output -->
+      <div class="viewport-card">
+        <div class="viewport-header">
+          <div class="viewport-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            2. Browser WebGPU Canvas Output (2D Rasterization)
+          </div>
+          <span id="renderStatus" class="status-pill status-ok">Visible</span>
+        </div>
+
+        <div class="canvas-wrapper no-drag">
+          <canvas id="canvas2d"></canvas>
+          <div class="viewport-overlay">
+            <div class="hud-badge">Projected 2D Area: <strong id="hudArea">0.500</strong></div>
+            <div class="hud-badge">Winding (from Eye): <strong id="hudWinding">CW (Back)</strong></div>
+          </div>
+          <div class="hud-bottom-hint">Simulates exact WebGPU canvas output (clearValue = white)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Grid: Sticky Controls on Left, Concept & Math Cards on Right -->
+    <div class="bottom-grid">
+      <div class="controls-col">
+        <!-- Interactive Controls -->
+        <div class="controls-card">
+          <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            Presets &amp; Triangle Vertex Controls
+          </div>
+
+          <div class="preset-pills">
+            <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; margin-right:4px;">Presets:</span>
+            <button class="pill-btn active" data-preset="xy">XY Plane (Visible)</button>
+            <button class="pill-btn" data-preset="xz">XZ Plane (Missing Triangle!)</button>
+            <button class="pill-btn" data-preset="ccw">XY Counter-Clockwise (Front)</button>
+            <button class="pill-btn" data-preset="tilted">Tilted in 3D Depth</button>
+            <button class="pill-btn" data-preset="behind">Behind Near Plane (z &lt; 0)</button>
+          </div>
+
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkShowXZ" checked> Show XZ Plane (y = 0)</label>
+            <label><input type="checkbox" id="chkShowRays" checked> Show Projection Rays to z = 0</label>
+            <label><input type="checkbox" id="chkCullBack"> Enable <code>cullMode: "back"</code></label>
+          </div>
+
+          <div class="vertex-cards" id="vertexControls"></div>
+
+          <div id="presetBanner" class="result-badge good" style="margin-top: 12px;"></div>
+        </div>
+      </div>
+
+      <div class="math-col">
+        <!-- Theory Card 1: Clip Space & NDC -->
+      <div class="math-card">
+        <span class="math-step-num">Core Concept</span>
+        <div class="math-card-title">1. Where is the Camera When There Is No Matrix?</div>
+        <div class="math-card-desc">
+          In <code>01_where-is-triangle.html</code>, the vertex shader outputs <code>vec4&lt;f32&gt;(in.position, 1.0)</code> directly to <code>@builtin(position)</code> without any <code>lookAt</code> or <code>perspective</code> matrix. The GPU divides $(x, y, z)$ by $w = 1.0$ to get <strong>Normalized Device Coordinates (NDC)</strong>:
+        </div>
+
+        <div class="katex-display">
+          $$ \text{NDC} = \left(\frac{x}{w},\; \frac{y}{w},\; \frac{z}{w}\right) = (x, y, z), \qquad \begin{cases} -1 \le x \le +1 & (\text{Left} \to \text{Right}) \\ -1 \le y \le +1 & (\text{Bottom} \to \text{Top}) \\ \phantom{-}0 \le z \le +1 & (\text{Near} \to \text{Far}) \end{cases} $$
+        </div>
+
+        <div class="math-card-desc" style="margin-bottom:0;">
+          Your monitor acts as a fixed window on the <strong>$z = 0$ XY plane</strong>, looking straight into the screen along <strong>$+Z$</strong>. Only $(x, y)$ determine where a vertex lands on the 2D canvas; $z$ is used only for depth clipping ($0 \le z \le 1$) and depth testing.
+        </div>
+      </div>
+
+      <!-- Theory Card 2: Live 2D Area & Edge-On Collapse -->
+      <div class="math-card">
+        <span class="math-step-num">Step 1 — 2D Screen Projection &amp; Area</span>
+        <div class="math-card-title">2. Why Lying on the XZ Plane Makes It Disappear</div>
+        <div class="math-card-desc">
+          Projecting vertices $V_0, V_1, V_2$ onto the 2D screen drops $z$. The signed 2D area in NDC is computed via the 2D cross product (shoelace determinant):
+        </div>
+
+        <div class="katex-display">
+          $$ \Delta = (x_1 - x_0)(y_2 - y_0) - (x_2 - x_0)(y_1 - y_0), \qquad \text{Area}_{2\text{D}} = \frac{1}{2}|\Delta| $$
+        </div>
+
+        <div class="formula-block">
+          <div class="f-comment">// Live 2D projected area &amp; winding calculation:</div>
+          <div>V₀(x, y) = (<span id="f_v0">0.00, 0.50</span>),  V₁(x, y) = (<span id="f_v1">-0.50, -0.50</span>),  V₂(x, y) = (<span id="f_v2">0.50, -0.50</span>)</div>
+          <div style="margin-top:4px;">
+            &Delta; = (<span id="f_dx1">-0.50</span>)(<span id="f_dy2">-1.00</span>) &minus; (<span id="f_dx2">0.50</span>)(<span id="f_dy1">-1.00</span>)
+            = <span class="f-num" id="f_det">1.000</span>
+          </div>
+          <div style="margin-top:4px;">
+            Area_2D = |&Delta;| / 2 = <span class="f-highlight" id="f_area">0.500</span>
+            &nbsp;|&nbsp; <span id="f_area_note" class="f-comment">(Covers pixels on screen)</span>
+          </div>
+        </div>
+
+        <div class="result-badge">
+          <span>📐 When all 3 vertices have <code>y = 0</code> (on the XZ plane), every $(y_i - y_0) = 0$, so $\text{Area}_{2\text{D}} = 0$ — the triangle collapses into a 0-pixel-tall horizontal line!</span>
+        </div>
+      </div>
+
+      <!-- Theory Card 3: Depth Clipping & Back-Face Culling -->
+      <div class="math-card">
+        <span class="math-step-num">Step 2 — Depth Clipping &amp; Culling</span>
+        <div class="math-card-title">3. Depth Range $z \in [0, 1]$ &amp; Winding Order (<code>cullMode</code>)</div>
+        <div class="math-card-desc">
+          Even when $\text{Area}_{2\text{D}} > 0$, a triangle can still disappear for two pipeline reasons:
+        </div>
+        <div class="formula-block" id="clipBreakdown"></div>
+        <div class="math-card-desc" style="margin-bottom:0;">
+          &bull; <strong>Depth Clipping:</strong> Any fragment with $z < 0$ (behind near plane) or $z > 1$ (beyond far plane) is discarded by WebGPU.<br>
+          &bull; <strong>Back-Face Culling:</strong> By default (<code>frontFace: "ccw"</code>), $\Delta > 0$ is counter-clockwise (<strong>Front</strong>) and $\Delta < 0$ is clockwise (<strong>Back</strong>). Turning on <code>cullMode: "back"</code> discards clockwise triangles!
+        </div>
+      </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Computer Graphics Lab &mdash; WebGPU Clip Space, NDC &amp; Rasterization Visualizer
+  </footer>
+
+  <script>
+    (function () {
+      const PRESETS = {
+        xy: {
+          vertices: [
+            [0.0, 0.5, 0.0],
+            [0.5, -0.5, 0.0],
+            [-0.5, -0.5, 0.0]
+          ],
+          cullBack: false,
+          tone: 'good',
+          note: '✅ <strong>Visible (XY Plane):</strong> Vertices have distinct X and Y values at <code>z = 0</code>, facing the screen directly. Try toggling <code>cullMode: "back"</code> above to see CW culling!'
+        },
+        xz: {
+          vertices: [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0]
+          ],
+          cullBack: false,
+          tone: 'warn',
+          note: '⚠️ <strong>Missing Triangle Bug (XZ Plane):</strong> All 3 vertices have <code>y = 0.0</code>! Looking along +Z, you see only its infinitely thin edge (2D Area = 0), so 0 pixels are drawn.'
+        },
+        ccw: {
+          vertices: [
+            [0.0, 0.5, 0.0],
+            [-0.5, -0.5, 0.0],
+            [0.5, -0.5, 0.0]
+          ],
+          cullBack: true,
+          tone: 'good',
+          note: '✅ <strong>CCW Front-Facing:</strong> Ordering vertices counter-clockwise (<code>V0 &rarr; V1(left) &rarr; V2(right)</code>) gives &Delta; &gt; 0, so it stays visible even with <code>cullMode: "back"</code> enabled.'
+        },
+        tilted: {
+          vertices: [
+            [0.0, 0.6, 0.2],
+            [-0.6, -0.4, 0.85],
+            [0.6, -0.4, 0.15]
+          ],
+          cullBack: false,
+          tone: 'good',
+          note: '💡 <strong>Tilted in 3D Depth:</strong> With <code>w = 1.0</code> (orthographic clip space), changing <code>z</code> inside <code>[0, 1]</code> does not shrink the triangle — vertices project straight onto <code>z = 0</code>.'
+        },
+        behind: {
+          vertices: [
+            [0.0, 0.5, -0.4],
+            [-0.5, -0.5, -0.4],
+            [0.5, -0.5, -0.4]
+          ],
+          cullBack: false,
+          tone: 'warn',
+          note: '⚠️ <strong>Clipped by Near Plane:</strong> All vertices have <code>z = -0.4 &lt; 0</code>, outside WebGPU\'s <code>[0, 1]</code> depth box, so the GPU clips the entire triangle.'
+        }
+      };
+
+      const V_META = [
+        { cls: 'v0', name: 'V₀ (Red)', hex: '#dc2626', rgb: [239, 68, 68] },
+        { cls: 'v1', name: 'V₁ (Green)', hex: '#059669', rgb: [16, 185, 129] },
+        { cls: 'v2', name: 'V₂ (Blue)', hex: '#2563eb', rgb: [37, 99, 235] }
+      ];
+
+      let vertices = PRESETS.xy.vertices.map(v => [...v]);
+      let orbit = { yaw: -0.68, pitch: 0.42, dist: 3.85 };
+      let dragging = false;
+      let lastMouse = { x: 0, y: 0 };
+
+      const canvas3d = document.getElementById('canvas3d');
+      const ctx3d = canvas3d.getContext('2d');
+      const canvas2d = document.getElementById('canvas2d');
+      const ctx2d = canvas2d.getContext('2d');
+
+      const chkShowXZ = document.getElementById('chkShowXZ');
+      const chkShowRays = document.getElementById('chkShowRays');
+      const chkCullBack = document.getElementById('chkCullBack');
+      const vertexControls = document.getElementById('vertexControls');
+      const presetBanner = document.getElementById('presetBanner');
+      const renderStatus = document.getElementById('renderStatus');
+      const hudArea = document.getElementById('hudArea');
+      const hudWinding = document.getElementById('hudWinding');
+      const clipBreakdown = document.getElementById('clipBreakdown');
+
+      function renderMath() {
+        if (window.renderMathInElement) {
+          try {
+            renderMathInElement(document.body, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false }
+              ],
+              throwOnError: false
+            });
+          } catch (err) {
+            console.warn('KaTeX error:', err);
+          }
+        } else {
+          setTimeout(renderMath, 120);
+        }
+      }
+
+      function buildVertexSliders() {
+        vertexControls.innerHTML = '';
+        vertices.forEach((v, vIdx) => {
+          const m = V_META[vIdx];
+          const card = document.createElement('div');
+          card.className = `vertex-box ${m.cls}`;
+          card.innerHTML = `
+            <div class="vertex-head">
+              <span class="legend-dot" style="background:${m.hex}"></span>
+              <span>${m.name}</span>
+            </div>
+            ${['x', 'y', 'z'].map((ax, aIdx) => `
+              <div class="v-slider-row">
+                <label>${ax}</label>
+                <input type="range" min="-1.2" max="1.2" step="0.05" value="${v[aIdx]}" data-v="${vIdx}" data-a="${aIdx}">
+                <span class="v-val" id="val-${vIdx}-${aIdx}">${v[aIdx].toFixed(2)}</span>
+              </div>
+            `).join('')}
+          `;
+          vertexControls.appendChild(card);
+        });
+
+        vertexControls.querySelectorAll('input[type="range"]').forEach(input => {
+          input.addEventListener('input', (e) => {
+            const vi = Number(e.target.dataset.v);
+            const ai = Number(e.target.dataset.a);
+            const val = Number(e.target.value);
+            vertices[vi][ai] = val;
+            document.getElementById(`val-${vi}-${ai}`).textContent = val.toFixed(2);
+            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+            presetBanner.className = 'result-badge';
+            presetBanner.innerHTML = '🎛️ <strong>Custom Vertices:</strong> Drag sliders to test NDC coordinates, 2D projected area, and depth clipping in real time.';
+            updateAll();
+          });
+        });
+      }
+
+      function syncSliders() {
+        vertices.forEach((v, vi) => {
+          [0, 1, 2].forEach(ai => {
+            const inp = vertexControls.querySelector(`input[data-v="${vi}"][data-a="${ai}"]`);
+            const lbl = document.getElementById(`val-${vi}-${ai}`);
+            if (inp) inp.value = v[ai];
+            if (lbl) lbl.textContent = v[ai].toFixed(2);
+          });
+        });
+      }
+
+      function applyPreset(key) {
+        const p = PRESETS[key];
+        if (!p) return;
+        vertices = p.vertices.map(v => [...v]);
+        chkCullBack.checked = p.cullBack;
+        syncSliders();
+
+        document.querySelectorAll('.pill-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.preset === key);
+        });
+
+        presetBanner.className = `result-badge ${p.tone}`;
+        presetBanner.innerHTML = `<span>${p.note}</span>`;
+        updateAll();
+      }
+
+      document.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+      });
+
+      document.getElementById('btnResetOrbit').addEventListener('click', () => {
+        orbit = { yaw: -0.68, pitch: 0.42, dist: 3.85 };
+        draw3D();
+      });
+
+      document.getElementById('btnResetAll').addEventListener('click', () => {
+        orbit = { yaw: -0.68, pitch: 0.42, dist: 3.85 };
+        chkShowXZ.checked = true;
+        chkShowRays.checked = true;
+        applyPreset('xy');
+      });
+
+      [chkShowXZ, chkShowRays, chkCullBack].forEach(el => el.addEventListener('change', updateAll));
+
+      // Orbit interaction
+      const wrapper3d = document.getElementById('canvas3dWrapper');
+      wrapper3d.addEventListener('mousedown', (e) => {
+        dragging = true;
+        lastMouse = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('mouseup', () => { dragging = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - lastMouse.x;
+        const dy = e.clientY - lastMouse.y;
+        lastMouse = { x: e.clientX, y: e.clientY };
+        orbit.yaw += dx * 0.008;
+        orbit.pitch = Math.max(-1.45, Math.min(1.45, orbit.pitch + dy * 0.008));
+        draw3D();
+      });
+      wrapper3d.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        orbit.dist = Math.max(2.1, Math.min(7.5, orbit.dist + e.deltaY * 0.003));
+        draw3D();
+      }, { passive: false });
+
+      function project3D(p, w, h) {
+        const cx = p[0];
+        const cy = p[1];
+        const cz = p[2] - 0.5;
+
+        const cosY = Math.cos(orbit.yaw);
+        const sinY = Math.sin(orbit.yaw);
+        const x1 = cx * cosY - cz * sinY;
+        const z1 = cx * sinY + cz * cosY;
+
+        const cosP = Math.cos(orbit.pitch);
+        const sinP = Math.sin(orbit.pitch);
+        const y2 = cy * cosP - z1 * sinP;
+        const z2 = cy * sinP + z1 * cosP;
+
+        const camZ = z2 + orbit.dist;
+        const scale = Math.min(w, h) * 0.72 / Math.max(0.2, camZ);
+        return {
+          x: w / 2 + x1 * scale,
+          y: h / 2 - y2 * scale
+        };
+      }
+
+      function draw3D() {
+        const rect = wrapper3d.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas3d.width = Math.floor(rect.width * dpr);
+        canvas3d.height = Math.floor(rect.height * dpr);
+        ctx3d.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const w = rect.width;
+        const h = rect.height;
+        const proj = (p) => project3D(p, w, h);
+
+        ctx3d.clearRect(0, 0, w, h);
+        ctx3d.fillStyle = '#ffffff';
+        ctx3d.fillRect(0, 0, w, h);
+
+        const line = (a, b, color, width = 1, dash = []) => {
+          const pa = proj(a);
+          const pb = proj(b);
+          ctx3d.save();
+          ctx3d.strokeStyle = color;
+          ctx3d.lineWidth = width;
+          ctx3d.setLineDash(dash);
+          ctx3d.beginPath();
+          ctx3d.moveTo(pa.x, pa.y);
+          ctx3d.lineTo(pb.x, pb.y);
+          ctx3d.stroke();
+          ctx3d.restore();
+        };
+
+        const arrow = (a, b, color, text, width = 2) => {
+          const pa = proj(a);
+          const pb = proj(b);
+          ctx3d.save();
+          ctx3d.strokeStyle = color;
+          ctx3d.fillStyle = color;
+          ctx3d.lineWidth = width;
+          ctx3d.beginPath();
+          ctx3d.moveTo(pa.x, pa.y);
+          ctx3d.lineTo(pb.x, pb.y);
+          ctx3d.stroke();
+
+          const ang = Math.atan2(pb.y - pa.y, pb.x - pa.x);
+          const hl = 8;
+          ctx3d.beginPath();
+          ctx3d.moveTo(pb.x, pb.y);
+          ctx3d.lineTo(pb.x - hl * Math.cos(ang - Math.PI / 6), pb.y - hl * Math.sin(ang - Math.PI / 6));
+          ctx3d.lineTo(pb.x - hl * Math.cos(ang + Math.PI / 6), pb.y - hl * Math.sin(ang + Math.PI / 6));
+          ctx3d.closePath();
+          ctx3d.fill();
+
+          if (text) {
+            ctx3d.font = '600 11px Fira Code, monospace';
+            ctx3d.fillText(text, pb.x + 7, pb.y + 4);
+          }
+          ctx3d.restore();
+        };
+
+        const label = (p, text, color = '#334155', ox = 6, oy = -6) => {
+          const pt = proj(p);
+          ctx3d.save();
+          ctx3d.fillStyle = color;
+          ctx3d.font = '600 11px Fira Code, monospace';
+          ctx3d.fillText(text, pt.x + ox, pt.y + oy);
+          ctx3d.restore();
+        };
+
+        // 1. Optional XZ plane grid (y = 0)
+        if (chkShowXZ.checked) {
+          for (let t = -1; t <= 1.001; t += 0.25) {
+            line([t, 0, 0], [t, 0, 1], 'rgba(15, 23, 42, 0.08)', 1);
+            line([-1, 0, (t + 1) / 2], [1, 0, (t + 1) / 2], 'rgba(15, 23, 42, 0.08)', 1);
+          }
+          label([0.55, 0, 0.92], 'XZ plane (y = 0)', '#64748b', 0, 14);
+        }
+
+        // 2. NDC Volume Box: x,y in [-1, 1], z in [0, 1]
+        const corners = [
+          [-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0],
+          [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+        ];
+        const c0 = proj(corners[0]), c1 = proj(corners[1]), c2 = proj(corners[2]), c3 = proj(corners[3]);
+        ctx3d.save();
+        ctx3d.fillStyle = 'rgba(2, 132, 199, 0.07)';
+        ctx3d.beginPath();
+        ctx3d.moveTo(c0.x, c0.y);
+        ctx3d.lineTo(c1.x, c1.y);
+        ctx3d.lineTo(c2.x, c2.y);
+        ctx3d.lineTo(c3.x, c3.y);
+        ctx3d.closePath();
+        ctx3d.fill();
+        ctx3d.restore();
+
+        for (let i = 0; i < 4; i++) {
+          line(corners[i], corners[(i + 1) % 4], '#0284c7', 1.8);
+          line(corners[i + 4], corners[4 + (i + 1) % 4], '#94a3b8', 1.2);
+          line(corners[i], corners[i + 4], '#94a3b8', 1.2, [4, 4]);
+        }
+        label([-1, 1, 0], 'z = 0 (Screen / Near)', '#0284c7', 4, -8);
+        label([-1, 1, 1], 'z = 1 (Far)', '#64748b', 4, -8);
+
+        // 3. Coordinate Axes at Origin (0, 0, 0)
+        arrow([0, 0, 0], [1.28, 0, 0], '#dc2626', '+X', 2.2);
+        arrow([0, 0, 0], [0, 1.28, 0], '#059669', '+Y', 2.2);
+        arrow([0, 0, 0], [0, 0, 1.32], '#2563eb', '+Z', 2.2);
+
+        // 4. Default Eye / Viewer looking along +Z
+        const eyePos = [0, 0, -0.78];
+        const eyePt = proj(eyePos);
+        for (let i = 0; i < 4; i++) {
+          line(eyePos, corners[i], 'rgba(192, 38, 211, 0.25)', 1, [3, 3]);
+        }
+        arrow(eyePos, [0, 0, -0.04], '#c026d3', '', 2);
+        ctx3d.save();
+        ctx3d.fillStyle = '#d97706';
+        ctx3d.shadowColor = 'rgba(217, 119, 6, 0.35)';
+        ctx3d.shadowBlur = 8;
+        ctx3d.beginPath();
+        ctx3d.arc(eyePt.x, eyePt.y, 6, 0, Math.PI * 2);
+        ctx3d.fill();
+        ctx3d.restore();
+        label(eyePos, 'Eye (looking +Z)', '#b45309', 10, 4);
+
+        // 5. Projection rays to z = 0 screen plane
+        if (chkShowRays.checked) {
+          vertices.forEach((v, i) => {
+            line(v, [v[0], v[1], 0], 'rgba(71, 85, 105, 0.45)', 1.2, [3, 3]);
+            const pf = proj([v[0], v[1], 0]);
+            ctx3d.save();
+            ctx3d.strokeStyle = V_META[i].hex;
+            ctx3d.lineWidth = 1.6;
+            ctx3d.beginPath();
+            ctx3d.arc(pf.x, pf.y, 3.5, 0, Math.PI * 2);
+            ctx3d.stroke();
+            ctx3d.restore();
+          });
+        }
+
+        // 6. 3D Triangle
+        const pv = vertices.map(proj);
+        ctx3d.save();
+        const grad = ctx3d.createLinearGradient(pv[0].x, pv[0].y, pv[2].x, pv[2].y);
+        grad.addColorStop(0, 'rgba(220, 38, 38, 0.42)');
+        grad.addColorStop(0.5, 'rgba(5, 150, 105, 0.42)');
+        grad.addColorStop(1, 'rgba(37, 99, 235, 0.42)');
+        ctx3d.fillStyle = grad;
+        ctx3d.strokeStyle = '#0f172a';
+        ctx3d.lineWidth = 1.8;
+        ctx3d.beginPath();
+        ctx3d.moveTo(pv[0].x, pv[0].y);
+        ctx3d.lineTo(pv[1].x, pv[1].y);
+        ctx3d.lineTo(pv[2].x, pv[2].y);
+        ctx3d.closePath();
+        ctx3d.fill();
+        ctx3d.stroke();
+        ctx3d.restore();
+
+        vertices.forEach((v, i) => {
+          ctx3d.save();
+          ctx3d.fillStyle = V_META[i].hex;
+          ctx3d.strokeStyle = '#ffffff';
+          ctx3d.lineWidth = 2;
+          ctx3d.beginPath();
+          ctx3d.arc(pv[i].x, pv[i].y, 5.5, 0, Math.PI * 2);
+          ctx3d.fill();
+          ctx3d.stroke();
+          ctx3d.restore();
+          label(v, `V${i}(${v[0].toFixed(1)}, ${v[1].toFixed(1)}, ${v[2].toFixed(1)})`, '#0f172a', 8, -7);
+        });
+      }
+
+      function draw2DAndFormulas() {
+        const rect = canvas2d.parentElement.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = window.devicePixelRatio || 1;
+        canvas2d.width = Math.floor(rect.width * dpr);
+        canvas2d.height = Math.floor(rect.height * dpr);
+        ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const w = rect.width;
+        const h = rect.height;
+
+        ctx2d.fillStyle = '#ffffff';
+        ctx2d.fillRect(0, 0, w, h);
+
+        // Subtle NDC crosshair & border ticks
+        ctx2d.strokeStyle = '#e2e8f0';
+        ctx2d.lineWidth = 1;
+        ctx2d.beginPath();
+        ctx2d.moveTo(w / 2, 0); ctx2d.lineTo(w / 2, h);
+        ctx2d.moveTo(0, h / 2); ctx2d.lineTo(w, h / 2);
+        ctx2d.stroke();
+
+        ctx2d.fillStyle = '#94a3b8';
+        ctx2d.font = '500 11px Fira Code, monospace';
+        ctx2d.fillText('NDC (-1, +1)', 8, h - 42 > 20 ? 68 : 16);
+        ctx2d.fillText('NDC (+1, -1)', w - 92, h - 10);
+        ctx2d.fillText('(0, 0)', w / 2 + 6, h / 2 - 6);
+
+        const [v0, v1, v2] = vertices;
+        const dx1 = v1[0] - v0[0];
+        const dy1 = v1[1] - v0[1];
+        const dx2 = v2[0] - v0[0];
+        const dy2 = v2[1] - v0[1];
+        const det = dx1 * dy2 - dx2 * dy1;
+        const area = Math.abs(det) * 0.5;
+        const isCCW = det > 1e-5;
+        const isCW = det < -1e-5;
+
+        // Update math readouts
+        hudArea.textContent = area.toFixed(3);
+        hudWinding.textContent = Math.abs(det) <= 1e-5 ? 'Collinear (0)' : (isCCW ? 'CCW (Front)' : 'CW (Back)');
+
+        document.getElementById('f_v0').textContent = `${v0[0].toFixed(2)}, ${v0[1].toFixed(2)}`;
+        document.getElementById('f_v1').textContent = `${v1[0].toFixed(2)}, ${v1[1].toFixed(2)}`;
+        document.getElementById('f_v2').textContent = `${v2[0].toFixed(2)}, ${v2[1].toFixed(2)}`;
+        document.getElementById('f_dx1').textContent = dx1.toFixed(2);
+        document.getElementById('f_dy2').textContent = dy2.toFixed(2);
+        document.getElementById('f_dx2').textContent = dx2.toFixed(2);
+        document.getElementById('f_dy1').textContent = dy1.toFixed(2);
+        document.getElementById('f_det').textContent = det.toFixed(3);
+        document.getElementById('f_area').textContent = area.toFixed(3);
+        document.getElementById('f_area_note').textContent =
+          area < 1e-4 ? '(Edge-on line: 0 pixels!)' : '(Non-zero 2D surface area)';
+
+        clipBreakdown.innerHTML = vertices.map((v, i) => {
+          const inXY = Math.abs(v[0]) <= 1 && Math.abs(v[1]) <= 1;
+          const inZ = v[2] >= 0 && v[2] <= 1;
+          const ok = inXY && inZ;
+          return `<div><strong>V${i}</strong> = (${v[0].toFixed(2)}, ${v[1].toFixed(2)}, ${v[2].toFixed(2)}) &rarr; ` +
+            `<span style="color:${ok ? '#059669' : '#dc2626'}; font-weight:600;">` +
+            `${ok ? 'Inside NDC' : (!inZ ? 'Clipped (z ∉ [0, 1])' : 'Outside XY [-1, 1]')}</span></div>`;
+        }).join('');
+
+        const toScreen = (v) => ({
+          x: (v[0] * 0.5 + 0.5) * w,
+          y: (-v[1] * 0.5 + 0.5) * h
+        });
+        const s = vertices.map(toScreen);
+
+        if (area < 1e-4) {
+          renderStatus.textContent = 'Invisible (0-Area / Edge-on)';
+          renderStatus.className = 'status-pill status-bad';
+
+          ctx2d.save();
+          ctx2d.strokeStyle = 'rgba(220, 38, 38, 0.75)';
+          ctx2d.setLineDash([5, 4]);
+          ctx2d.lineWidth = 2;
+          ctx2d.beginPath();
+          ctx2d.moveTo(s[0].x, s[0].y);
+          ctx2d.lineTo(s[1].x, s[1].y);
+          ctx2d.lineTo(s[2].x, s[2].y);
+          ctx2d.stroke();
+          ctx2d.fillStyle = '#dc2626';
+          ctx2d.font = '600 12.5px Inter, sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.fillText('⚠️ 0 PIXELS RASTERIZED — Triangle is edge-on (2D Area = 0)', w / 2, h / 2 + 42);
+          ctx2d.restore();
+          return;
+        }
+
+        if (chkCullBack.checked && isCW) {
+          renderStatus.textContent = 'Culled (cullMode: "back")';
+          renderStatus.className = 'status-pill status-bad';
+
+          ctx2d.save();
+          ctx2d.strokeStyle = 'rgba(217, 119, 6, 0.65)';
+          ctx2d.setLineDash([5, 4]);
+          ctx2d.lineWidth = 2;
+          ctx2d.beginPath();
+          ctx2d.moveTo(s[0].x, s[0].y);
+          ctx2d.lineTo(s[1].x, s[1].y);
+          ctx2d.lineTo(s[2].x, s[2].y);
+          ctx2d.closePath();
+          ctx2d.stroke();
+          ctx2d.fillStyle = '#b45309';
+          ctx2d.font = '600 12.5px Inter, sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.fillText('⚠️ CULLED — Winding is Clockwise (Back-facing) with cullMode: "back"', w / 2, h / 2 + 42);
+          ctx2d.restore();
+          return;
+        }
+
+        // Rasterize triangle with per-pixel depth check 0 <= z <= 1
+        const minX = Math.max(0, Math.floor(Math.min(s[0].x, s[1].x, s[2].x)));
+        const maxX = Math.min(w - 1, Math.ceil(Math.max(s[0].x, s[1].x, s[2].x)));
+        const minY = Math.max(0, Math.floor(Math.min(s[0].y, s[1].y, s[2].y)));
+        const maxY = Math.min(h - 1, Math.ceil(Math.max(s[0].y, s[1].y, s[2].y)));
+
+        let drawnPixels = 0;
+        const denom = (s[1].y - s[2].y) * (s[0].x - s[2].x) + (s[2].x - s[1].x) * (s[0].y - s[2].y);
+        if (Math.abs(denom) > 1e-5 && maxX >= minX && maxY >= minY) {
+          const rMinX = Math.floor(minX * dpr);
+          const rMaxX = Math.min(canvas2d.width - 1, Math.ceil(maxX * dpr));
+          const rMinY = Math.floor(minY * dpr);
+          const rMaxY = Math.min(canvas2d.height - 1, Math.ceil(maxY * dpr));
+          const bw = rMaxX - rMinX + 1;
+          const bh = rMaxY - rMinY + 1;
+
+          if (bw > 0 && bh > 0) {
+            const img = ctx2d.getImageData(rMinX, rMinY, bw, bh);
+            for (let py = rMinY; py <= rMaxY; py++) {
+              const cssY = py / dpr;
+              for (let px = rMinX; px <= rMaxX; px++) {
+                const cssX = px / dpr;
+                const w0 = ((s[1].y - s[2].y) * (cssX - s[2].x) + (s[2].x - s[1].x) * (cssY - s[2].y)) / denom;
+                const w1 = ((s[2].y - s[0].y) * (cssX - s[2].x) + (s[0].x - s[2].x) * (cssY - s[2].y)) / denom;
+                const w2 = 1 - w0 - w1;
+                if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                  const z = w0 * v0[2] + w1 * v1[2] + w2 * v2[2];
+                  if (z >= 0 && z <= 1) {
+                    const idx = ((py - rMinY) * bw + (px - rMinX)) * 4;
+                    img.data[idx] = Math.round(w0 * 255);
+                    img.data[idx + 1] = Math.round(w1 * 255);
+                    img.data[idx + 2] = Math.round(w2 * 255);
+                    img.data[idx + 3] = 255;
+                    drawnPixels++;
+                  }
+                }
+              }
+            }
+            ctx2d.putImageData(img, rMinX, rMinY);
+          }
+        }
+
+        if (drawnPixels === 0) {
+          renderStatus.textContent = 'Clipped (Outside NDC Box)';
+          renderStatus.className = 'status-pill status-bad';
+          ctx2d.save();
+          ctx2d.fillStyle = '#dc2626';
+          ctx2d.font = '600 12.5px Inter, sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.fillText('⚠️ CLIPPED — All fragments lie outside NDC bounds (z ∉ [0, 1] or x,y ∉ [-1, 1])', w / 2, h / 2 + 42);
+          ctx2d.restore();
+        } else {
+          renderStatus.textContent = 'Visible';
+          renderStatus.className = 'status-pill status-ok';
+        }
+      }
+
+      function updateAll() {
+        draw3D();
+        draw2DAndFormulas();
+      }
+
+      window.addEventListener('resize', updateAll);
+
+      buildVertexSliders();
+      renderMath();
+      applyPreset('xy');
+    })();
+  </script>
+</body>
+</html>

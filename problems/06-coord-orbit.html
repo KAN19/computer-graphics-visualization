@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6. 3D Coordinate System: Auto-Rotate, Pause, Mouse &amp; Keyboard</title>
+
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for crisp LaTeX equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #f8fafc;
+      --border-subtle: #e2e8f0;
+
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      --world-x: #dc2626;
+      --world-y: #059669;
+      --world-z: #2563eb;
+      --accent: #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .katex {
+      font-size: 1.0em;
+      color: #1e293b;
+    }
+
+    .katex-display {
+      margin: 8px 0 10px 0 !important;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .btn-active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+
+    .btn-paused {
+      background: rgba(217, 119, 6, 0.12);
+      border-color: #d97706;
+      color: #b45309;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: minmax(520px, 1.25fr) minmax(390px, 0.95fr);
+      gap: 18px;
+      padding: 18px 24px;
+      flex: 1;
+      max-width: 1920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1150px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .viewport-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    }
+
+    .viewport-header {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .viewport-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .viewport-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      min-height: 540px;
+      background: #ffffff;
+      overflow: hidden;
+      cursor: grab;
+      outline: none;
+    }
+
+    .canvas-wrapper:active {
+      cursor: grabbing;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hud-badge {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-muted);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+
+    .hud-badge strong {
+      color: #0f172a;
+    }
+
+    .hud-bottom-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      pointer-events: none;
+      font-size: 0.73rem;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* Live Keyboard Pad Overlay */
+    .key-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 8px 10px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 30px);
+      grid-template-rows: repeat(2, 28px);
+      gap: 4px;
+    }
+
+    .key-cap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s ease;
+    }
+
+    .key-cap:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .key-cap.pressed {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      transform: translateY(1px);
+    }
+
+    .extra-keys {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .zoom-keys {
+      display: flex;
+      gap: 4px;
+    }
+
+    .zoom-keys .key-cap {
+      width: 30px;
+      height: 28px;
+    }
+
+    .space-cap {
+      height: 28px;
+      padding: 0 10px;
+      font-size: 0.7rem;
+    }
+
+    /* Right Column */
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .side-col::-webkit-scrollbar {
+      width: 6px;
+    }
+    .side-col::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    .section-title {
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .preset-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .pill-btn {
+      font-size: 0.75rem;
+      padding: 5px 11px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .pill-btn.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      margin-bottom: 12px;
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 130px 1fr 68px;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+    }
+
+    .slider-label {
+      color: var(--text-muted);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.77rem;
+      font-weight: 600;
+    }
+
+    .slider-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-align: right;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(2, 132, 199, 0.2);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+    }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+
+    .math-step-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    .math-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .math-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .formula-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.76rem;
+      line-height: 1.6;
+      color: #334155;
+      overflow-x: auto;
+    }
+
+    .f-comment {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .f-num {
+      color: #b45309;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .f-highlight {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(2, 132, 199, 0.25);
+    }
+
+    footer {
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-badge">3D Orbit &amp; Controls</span>
+      <div>
+        <h1>3D Coordinate System — Auto-Rotate, Pause, Mouse &amp; Keyboard</h1>
+        <div class="brand-sub">Spherical camera orbit, Z-axis turntable rotation, smooth key polling &amp; mouse arcball</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-active" id="btnTogglePause">
+        <span id="pauseIcon">&#10074;&#10074;</span>
+        <span id="pauseText">Pause Rotation (Space)</span>
+      </button>
+      <button class="btn" id="btnReset">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset View
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <!-- Left: Interactive 3D Coordinate System Viewport -->
+    <div class="viewport-card">
+      <div class="viewport-header">
+        <div class="viewport-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          3D Coordinate System (Axes -5 &rarr; +5)
+        </div>
+        <div class="viewport-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--world-x);"></span> X Axis (Red)</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--world-y);"></span> Y Axis (Green)</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--world-z);"></span> Z Axis (Blue, Up)</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper" id="canvasWrapper" tabindex="0">
+        <canvas id="coordCanvas"></canvas>
+
+        <div class="viewport-overlay">
+          <div class="hud-badge">Eye Position: <strong id="hudEye">(9.2, 9.2, 7.5)</strong></div>
+          <div class="hud-badge">Angles: <strong id="hudAngles">&theta; = 45.0&deg;, &phi; = 30.0&deg;, R = 15.0</strong></div>
+          <div class="hud-badge">Auto-Rotate: <strong id="hudState" style="color:#059669;">Running (&alpha; = 0.0&deg;)</strong></div>
+        </div>
+
+        <!-- Interactive On-Screen + Live Keyboard Indicator -->
+        <div class="key-hud" title="Press keyboard keys or hold buttons with mouse">
+          <div class="dpad">
+            <div></div>
+            <div class="key-cap" data-key="ArrowUp">&uarr;</div>
+            <div></div>
+            <div class="key-cap" data-key="ArrowLeft">&larr;</div>
+            <div class="key-cap" data-key="ArrowDown">&darr;</div>
+            <div class="key-cap" data-key="ArrowRight">&rarr;</div>
+          </div>
+          <div class="extra-keys">
+            <div class="zoom-keys">
+              <div class="key-cap" data-key="+" title="Zoom In (+)">+</div>
+              <div class="key-cap" data-key="-" title="Zoom Out (-)">&minus;</div>
+            </div>
+            <div class="key-cap space-cap" id="spaceCap" title="Toggle Pause (Space)">Space</div>
+          </div>
+        </div>
+
+        <div class="hud-bottom-hint">Drag mouse to orbit | Scroll wheel or +/- to zoom | Arrow keys to move | Space to pause</div>
+      </div>
+    </div>
+
+    <!-- Right: Camera Controls & Math Breakdown -->
+    <div class="side-col">
+      <div class="card">
+        <div class="section-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          Camera Orbit &amp; Rotation Controls
+        </div>
+
+        <div class="preset-pills">
+          <span style="font-size:0.75rem; color:var(--text-dim); align-self:center; margin-right:4px;">Quadrants:</span>
+          <button class="pill-btn active" data-q="q1">1st (+X, +Y)</button>
+          <button class="pill-btn" data-q="q2">2nd (-X, +Y)</button>
+          <button class="pill-btn" data-q="q3">3rd (-X, -Y)</button>
+          <button class="pill-btn" data-q="q4">4th (+X, -Y)</button>
+          <button class="pill-btn" data-q="top">Top View (+Z)</button>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-row">
+            <span class="slider-label">Radius (R)</span>
+            <input type="range" id="slRadius" min="3" max="35" step="0.5" value="15">
+            <span class="slider-val" id="valRadius">15.0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Azimuth (&theta;)</span>
+            <input type="range" id="slTheta" min="-180" max="180" step="1" value="45">
+            <span class="slider-val" id="valTheta">45&deg;</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Elevation (&phi;)</span>
+            <input type="range" id="slPhi" min="-89" max="89" step="1" value="30">
+            <span class="slider-val" id="valPhi">30&deg;</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Auto Speed (&omega;)</span>
+            <input type="range" id="slSpeed" min="0" max="0.03" step="0.001" value="0.005">
+            <span class="slider-val" id="valSpeed">0.005</span>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkGrid" checked> Show XY Reference Grid</label>
+          <label><input type="checkbox" id="chkTicks" checked> Show Axis Ticks &amp; Labels</label>
+          <label><input type="checkbox" id="chkTri"> Show Red XZ Triangle (<code>01_triangle</code>)</label>
+          <label id="lblCullWrap" style="display:none;"><input type="checkbox" id="chkCullBack" checked> <code>cullMode: "back"</code></label>
+        </div>
+      </div>
+
+      <!-- Core Concept Card: Mental Model of Orbiting -->
+      <div class="card">
+        <span class="math-step-num">Core Concept — Mental Model</span>
+        <div class="math-card-title">How Does "Orbiting" Actually Work?</div>
+        <div class="math-card-desc" style="margin-bottom:0;">
+          &bull; <strong>The 3D axes never move!</strong> Their vertices stay fixed at $[-5, +5]$ in world space.<br>
+          &bull; Instead, we place the camera (<code>eye</code>) on the surface of an invisible <strong>sphere of radius $R$</strong> centered at the origin $(0, 0, 0)$, and force it to <strong>always stare at $(0, 0, 0)$</strong> every frame.<br>
+          &bull; Moving the camera Left around the sphere while keeping its gaze locked on $(0, 0, 0)$ makes the coordinate system appear to spin Right on screen — creating the <strong>Orbit illusion</strong> in 4 pipeline stages below:
+        </div>
+      </div>
+
+      <!-- Step 1: User Inputs -> Spherical Angles -->
+      <div class="card">
+        <span class="math-step-num">Stage 1 — Input Mapping &amp; Polling</span>
+        <div class="math-card-title">1. Convert Mouse, Wheel &amp; Smooth Keys into $(R, \theta, \phi)$</div>
+        <div class="math-card-desc">
+          Instead of moving $(x, y, z)$ along straight lines (which would change distance to the origin), user inputs control <strong>3 spherical parameters</strong> inside the 60 FPS <code>requestAnimationFrame</code> loop:
+        </div>
+        <div class="formula-block" style="margin-bottom:10px;">
+          <div class="f-comment">// A. Smooth Key Polling (why we use Set instead of raw keydown):</div>
+          <div>keys.has("ArrowLeft" / "ArrowRight") &rarr; &theta; &mp;= 1&deg;/frame <span class="f-comment">(no OS repeat lag!)</span></div>
+          <div>keys.has("ArrowUp"   / "ArrowDown")  &rarr; &phi; &pm;= 1&deg;/frame</div>
+          <div style="margin-top:4px;" class="f-comment">// B. Mouse DragArcball &amp; Scroll Wheel:</div>
+          <div>mousemove (dx, dy) &rarr; &theta; += dx &middot; 0.01, &nbsp;&phi; &minus;= dy &middot; 0.01</div>
+          <div>wheel (deltaY) / +/- &rarr; R = clamp(R + &Delta;R, 3, 35)</div>
+        </div>
+        <div class="math-card-desc" style="margin-bottom:0;">
+          <strong>⚠️ Why clamp $\phi \in (-89^\circ, +89^\circ)$?</strong> At $\phi = \pm 90^\circ$ (North/South pole), the camera sits directly on the $Z$ axis looking straight down $(0, 0, \mp 1)$, parallel to <code>worldUp = (0, 0, 1)</code>. Their cross product becomes $(0, 0, 0)$, causing the camera to suddenly flip upside-down (<em>Pole Flip / Gimbal Lock</em>).
+        </div>
+      </div>
+
+      <!-- Step 2: 2-Step Trigonometric Projection -->
+      <div class="card">
+        <span class="math-step-num">Stage 2 — Spherical to Cartesian</span>
+        <div class="math-card-title">2. Project $(R, \theta, \phi)$ onto 3D Position $(x_0, y_0, z_0)$</div>
+        <div class="math-card-desc">
+          Why do $x_0$ and $y_0$ multiply by $\cos\phi$? Think of a right triangle tilted up by elevation $\phi$:
+          <br>1. Splitting hypotenuse $R$ vertically gives height $z_0 = R\sin\phi$ and a <strong>horizontal shadow on the XY floor</strong> of length $r_{xy} = R\cos\phi$.
+          <br>2. Rotating that floor shadow $r_{xy}$ by horizontal angle $\theta$ splits it into $x_0$ and $y_0$:
+        </div>
+        <div class="katex-display">
+          $$ r_{xy} = R\cos\phi, \qquad \begin{cases} x_0 = r_{xy}\cos\theta = R \cos\phi \cos\theta \\ y_0 = r_{xy}\sin\theta = R \cos\phi \sin\theta \\ z_0 = R \sin\phi \end{cases} $$
+        </div>
+        <div class="formula-block">
+          <div class="f-comment">// Live Stage 2 Breakdown:</div>
+          <div>r_xy (XY floor radius) = <span id="f_r_val">15.0</span> &middot; cos(<span id="f_phi_val">30.0&deg;</span>) = <span class="f-num" id="f_rxy">12.99</span></div>
+          <div style="margin-top:4px;">
+            eye₀ = (<span class="f-num" id="f_ex0">9.19</span>, <span class="f-num" id="f_ey0">9.19</span>, <span class="f-num" id="f_ez0">7.50</span>)
+            &nbsp;<span class="f-comment">// |eye₀| = R</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Auto-Rotation + Pause -->
+      <div class="card">
+        <span class="math-step-num">Stage 3 — Turntable &amp; Pause State</span>
+        <div class="math-card-title">3. Add Auto-Rotation Around $Z$ Without Time Jumps</div>
+        <div class="math-card-desc">
+          Using <code>cos(time)</code> directly would make the camera teleport when unpausing because wall-clock <code>time</code> keeps ticking while paused. Instead, we only add $\omega$ to an accumulator $\alpha$ when <code>!paused</code>, then rotate $(x_0, y_0)$ in 2D around $+Z$ (equivalent to $\theta_{\text{total}} = \theta + \alpha$):
+        </div>
+        <div class="katex-display">
+          $$ \begin{bmatrix} x_{\text{eye}} \\ y_{\text{eye}} \end{bmatrix} = \begin{bmatrix} \cos\alpha & -\sin\alpha \\ \sin\alpha & \phantom{-}\cos\alpha \end{bmatrix} \begin{bmatrix} x_0 \\ y_0 \end{bmatrix}, \qquad z_{\text{eye}} = z_0 $$
+        </div>
+        <div class="formula-block">
+          <div>&alpha; = <span class="f-num" id="f_alpha">0.0&deg;</span> (<span id="f_pause_state">running</span>) &rarr; &theta;_total = <span class="f-num" id="f_theta_tot">45.0&deg;</span></div>
+          <div style="margin-top:4px;">
+            finalEye = <span class="f-highlight" id="f_final_eye">(9.19, 9.19, 7.50)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: LookAt Target Lock & MVP -->
+      <div class="card">
+        <span class="math-step-num">Stage 4 — LookAt &amp; MVP Matrix</span>
+        <div class="math-card-title">4. Lock Camera Gaze onto $(0, 0, 0)$ via <code>lookAt</code></div>
+        <div class="math-card-desc">
+          Moving <code>finalEye</code> alone isn't enough — if the camera kept facing one fixed direction, the axes would slide off screen! Every frame, <code>lookAt(finalEye, [0,0,0], [0,0,1])</code> rebuilds 3 orthonormal camera axes so the lens points straight back at the origin:
+        </div>
+        <div class="katex-display">
+          $$ \mathbf{f} = \frac{\mathbf{0} - \mathbf{eye}}{\|\mathbf{eye}\|}, \quad \mathbf{s} = \frac{\mathbf{f} \times \mathbf{up}}{\|\mathbf{f} \times \mathbf{up}\|}, \quad \mathbf{u} = \mathbf{s} \times \mathbf{f}, \quad \mathbf{MVP} = \mathbf{P}_{\text{persp}} \cdot \mathbf{V}_{\text{lookAt}} $$
+        </div>
+        <div class="formula-block">
+          <div class="f-comment">// Live Camera Basis Vectors rebuilt this frame:</div>
+          <div>Forward <strong>f</strong> (to origin) = <span class="f-num" id="f_vec_f">(-0.61, -0.61, -0.50)</span></div>
+          <div>Right &nbsp;&nbsp;<strong>s</strong> (screen +X) = <span class="f-num" id="f_vec_s">(-0.71, 0.71, 0.00)</span></div>
+          <div>TrueUp &nbsp;<strong>u</strong> (screen +Y) = <span class="f-num" id="f_vec_u">(-0.35, -0.35, 0.87)</span></div>
+        </div>
+      </div>
+
+      <!-- Card: Back-Face Culling -->
+      <div class="card" id="triConceptCard" style="border-color:#fca5a5;">
+        <div class="math-card-title">Why Does the Red Triangle Disappear at Some Angles?</div>
+        <div class="math-card-desc" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 10px; border-radius:6px; font-weight:500;">
+          💡 To see this feature in action on the 3D canvas, check <strong>"Show Red XZ Triangle (<code>01_triangle</code>)"</strong> in the controls card at the top!
+        </div>
+        <div class="math-card-desc">
+          The triangle $(0,0,0) \to (3,0,0) \to (0,0,3)$ lies on the XZ plane with <code>cullMode: "back"</code> enabled. By the right-hand rule, its <strong>Front Face</strong> points toward <strong>$-Y$</strong> — so when the camera rotates to the $+Y$ side (looking from behind), WebGPU hides its back side!
+        </div>
+        <div class="katex-display">
+          $$ \mathbf{n} = (3,0,0) \times (0,0,3) = (0, -9, 0) \parallel -\mathbf{Y} $$
+        </div>
+        <div class="formula-block">
+          <div>Front-Face Normal: <strong>-Y</strong> (CCW when viewed from <code>eye.y &lt; 0</code>)</div>
+          <div>Current <code>finalEye.y</code> = <span class="f-num" id="f_tri_ey">9.19</span> &rarr; <strong id="f_tri_status" style="color:#dc2626;">Back Face (Culled!)</strong></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Computer Graphics Lab &mdash; Interactive 3D Coordinate System (Mouse, Smooth Keys, Auto-Rotate &amp; Pause)
+  </footer>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('coordCanvas');
+      const ctx = canvas.getContext('2d');
+      const wrapper = document.getElementById('canvasWrapper');
+
+      // Camera state matching 5_pause.html & 3_mouse.html
+      let R = 15;
+      let theta = Math.PI / 4;
+      let phi = Math.PI / 6;
+      let animationAngle = 0;
+      let speed = 0.005;
+      let paused = false;
+
+      const keys = new Set();
+
+      // DOM elements
+      const btnTogglePause = document.getElementById('btnTogglePause');
+      const pauseIcon = document.getElementById('pauseIcon');
+      const pauseText = document.getElementById('pauseText');
+      const spaceCap = document.getElementById('spaceCap');
+
+      const slRadius = document.getElementById('slRadius');
+      const slTheta = document.getElementById('slTheta');
+      const slPhi = document.getElementById('slPhi');
+      const slSpeed = document.getElementById('slSpeed');
+
+      const valRadius = document.getElementById('valRadius');
+      const valTheta = document.getElementById('valTheta');
+      const valPhi = document.getElementById('valPhi');
+      const valSpeed = document.getElementById('valSpeed');
+
+      const chkGrid = document.getElementById('chkGrid');
+      const chkTicks = document.getElementById('chkTicks');
+      const chkTri = document.getElementById('chkTri');
+      const chkCullBack = document.getElementById('chkCullBack');
+      const lblCullWrap = document.getElementById('lblCullWrap');
+
+      chkTri.addEventListener('change', () => {
+        lblCullWrap.style.display = chkTri.checked ? 'inline-flex' : 'none';
+      });
+
+      function renderMath() {
+        if (window.renderMathInElement) {
+          try {
+            renderMathInElement(document.body, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false }
+              ],
+              throwOnError: false
+            });
+          } catch (err) {
+            console.warn('KaTeX error:', err);
+          }
+        } else {
+          setTimeout(renderMath, 120);
+        }
+      }
+
+      // Exact matrix math from 3_mouse.html & 5_pause.html
+      const subtract = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+      const cross = (a, b) => [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]
+      ];
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const normalize = (v) => {
+        const l = Math.hypot(...v) || 1;
+        return [v[0] / l, v[1] / l, v[2] / l];
+      };
+
+      function perspective(fovy, aspect, near, far) {
+        const f = 1.0 / Math.tan((fovy * Math.PI) / 360);
+        const nf = 1 / (near - far);
+        const out = new Float32Array(16);
+        out[0] = f / aspect;
+        out[5] = f;
+        out[10] = (far + near) * nf;
+        out[11] = -1;
+        out[14] = 2 * far * near * nf;
+        return out;
+      }
+
+      function lookAt(eye, center, up) {
+        const f = normalize(subtract(center, eye));
+        const s = normalize(cross(f, up));
+        const u = cross(s, f);
+        const out = new Float32Array(16);
+        out[0] = s[0]; out[4] = s[1]; out[8] = s[2];
+        out[1] = u[0]; out[5] = u[1]; out[9] = u[2];
+        out[2] = -f[0]; out[6] = -f[1]; out[10] = -f[2];
+        out[12] = -dot(s, eye);
+        out[13] = -dot(u, eye);
+        out[14] = dot(f, eye);
+        out[15] = 1;
+        return out;
+      }
+
+      function multiply(a, b) {
+        const out = new Float32Array(16);
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            out[j * 4 + i] =
+              a[i] * b[j * 4] +
+              a[i + 4] * b[j * 4 + 1] +
+              a[i + 8] * b[j * 4 + 2] +
+              a[i + 12] * b[j * 4 + 3];
+          }
+        }
+        return out;
+      }
+
+      function projectPoint(mvp, p, w, h) {
+        const x = p[0], y = p[1], z = p[2];
+        const cx = mvp[0] * x + mvp[4] * y + mvp[8] * z + mvp[12];
+        const cy = mvp[1] * x + mvp[5] * y + mvp[9] * z + mvp[13];
+        const cz = mvp[2] * x + mvp[6] * y + mvp[10] * z + mvp[14];
+        const cw = mvp[3] * x + mvp[7] * y + mvp[11] * z + mvp[15];
+        if (cw <= 0.05) return { visible: false, x: 0, y: 0, depth: cw };
+        const ndcX = cx / cw;
+        const ndcY = cy / cw;
+        return {
+          visible: true,
+          x: (ndcX * 0.5 + 0.5) * w,
+          y: (-ndcY * 0.5 + 0.5) * h,
+          depth: cz / cw
+        };
+      }
+
+      function updatePauseUI() {
+        if (paused) {
+          btnTogglePause.className = 'btn btn-paused';
+          pauseIcon.innerHTML = '&#9654;';
+          pauseText.textContent = 'Resume Rotation (Space)';
+          spaceCap.classList.add('pressed');
+        } else {
+          btnTogglePause.className = 'btn btn-active';
+          pauseIcon.innerHTML = '&#10074;&#10074;';
+          pauseText.textContent = 'Pause Rotation (Space)';
+          spaceCap.classList.remove('pressed');
+        }
+      }
+
+      function togglePause() {
+        paused = !paused;
+        updatePauseUI();
+      }
+
+      btnTogglePause.addEventListener('click', togglePause);
+      spaceCap.addEventListener('click', togglePause);
+
+      document.getElementById('btnReset').addEventListener('click', () => {
+        R = 15;
+        theta = Math.PI / 4;
+        phi = Math.PI / 6;
+        animationAngle = 0;
+        speed = 0.005;
+        paused = false;
+        slSpeed.value = speed;
+        valSpeed.textContent = speed.toFixed(3);
+        updatePauseUI();
+        syncSlidersFromState();
+        setActiveQuadrant('q1');
+      });
+
+      function setActiveQuadrant(qKey) {
+        document.querySelectorAll('.pill-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.q === qKey);
+        });
+      }
+
+      document.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const q = btn.dataset.q;
+          animationAngle = 0;
+          if (q === 'q1') { theta = Math.PI / 4; phi = Math.PI / 6; }
+          if (q === 'q2') { theta = (3 * Math.PI) / 4; phi = Math.PI / 6; }
+          if (q === 'q3') { theta = (-3 * Math.PI) / 4; phi = Math.PI / 6; }
+          if (q === 'q4') { theta = -Math.PI / 4; phi = Math.PI / 6; }
+          if (q === 'top') { theta = Math.PI / 4; phi = Math.PI / 2 - 0.02; }
+          setActiveQuadrant(q);
+          syncSlidersFromState();
+        });
+      });
+
+      function wrapDeg(rad) {
+        let d = (rad * 180) / Math.PI;
+        d = ((d + 180) % 360 + 360) % 360 - 180;
+        return d;
+      }
+
+      function syncSlidersFromState() {
+        slRadius.value = R;
+        valRadius.textContent = R.toFixed(1);
+        const degT = wrapDeg(theta);
+        slTheta.value = Math.round(degT);
+        valTheta.textContent = `${Math.round(degT)}°`;
+        const degP = (phi * 180) / Math.PI;
+        slPhi.value = Math.round(degP);
+        valPhi.textContent = `${Math.round(degP)}°`;
+      }
+
+      slRadius.addEventListener('input', (e) => {
+        R = parseFloat(e.target.value);
+        valRadius.textContent = R.toFixed(1);
+      });
+      slTheta.addEventListener('input', (e) => {
+        theta = (parseFloat(e.target.value) * Math.PI) / 180;
+        valTheta.textContent = `${e.target.value}°`;
+        setActiveQuadrant('');
+      });
+      slPhi.addEventListener('input', (e) => {
+        phi = (parseFloat(e.target.value) * Math.PI) / 180;
+        valPhi.textContent = `${e.target.value}°`;
+        setActiveQuadrant('');
+      });
+      slSpeed.addEventListener('input', (e) => {
+        speed = parseFloat(e.target.value);
+        valSpeed.textContent = speed.toFixed(3);
+      });
+
+      // Keyboard controls (Arrow keys, +/-, Space)
+      function updateKeyCapVisual(key, isDown) {
+        const normKey = key === '=' ? '+' : key;
+        const cap = document.querySelector(`.key-cap[data-key="${normKey}"]`);
+        if (cap) cap.classList.toggle('pressed', isDown);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePause();
+          return;
+        }
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-'].includes(e.key)) {
+          e.preventDefault();
+          keys.add(e.key);
+          updateKeyCapVisual(e.key, true);
+          setActiveQuadrant('');
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        keys.delete(e.key);
+        updateKeyCapVisual(e.key, false);
+      });
+
+      // On-screen D-pad hold support (mouse/touch)
+      document.querySelectorAll('.key-cap[data-key]').forEach(cap => {
+        const k = cap.dataset.key;
+        const startHold = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          keys.add(k);
+          cap.classList.add('pressed');
+          setActiveQuadrant('');
+        };
+        const endHold = () => {
+          keys.delete(k);
+          cap.classList.remove('pressed');
+        };
+        cap.addEventListener('mousedown', startHold);
+        cap.addEventListener('touchstart', startHold, { passive: false });
+        window.addEventListener('mouseup', endHold);
+        window.addEventListener('touchend', endHold);
+        cap.addEventListener('mouseleave', endHold);
+      });
+
+      // Mouse drag & wheel control (3_mouse.html)
+      let isDragging = false;
+      let lastX = 0;
+      let lastY = 0;
+
+      wrapper.addEventListener('mousedown', (e) => {
+        wrapper.focus();
+        if (e.target.closest('.key-hud')) return;
+        if (e.button === 0) {
+          isDragging = true;
+          lastX = e.clientX;
+          lastY = e.clientY;
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        theta += dx * 0.01;
+        phi -= dy * 0.01;
+        const limit = Math.PI / 2 - 0.02;
+        phi = Math.max(-limit, Math.min(limit, phi));
+        setActiveQuadrant('');
+        syncSlidersFromState();
+      });
+
+      wrapper.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        R = Math.max(3, Math.min(35, R + e.deltaY * 0.03));
+        syncSlidersFromState();
+      }, { passive: false });
+
+      function draw3DLine(mvp, a, b, color, width, w, h, dash = []) {
+        const pa = projectPoint(mvp, a, w, h);
+        const pb = projectPoint(mvp, b, w, h);
+        if (!pa.visible || !pb.visible) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function draw3DLabel(mvp, p, text, color, w, h, ox = 6, oy = -6, font = '600 12px Fira Code, monospace') {
+        const pt = projectPoint(mvp, p, w, h);
+        if (!pt.visible) return;
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = font;
+        ctx.fillText(text, pt.x + ox, pt.y + oy);
+        ctx.restore();
+      }
+
+      function render() {
+        const rect = wrapper.getBoundingClientRect();
+        if (rect.width && rect.height) {
+          const dpr = window.devicePixelRatio || 1;
+          const targetW = Math.floor(rect.width * dpr);
+          const targetH = Math.floor(rect.height * dpr);
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+          }
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          const w = rect.width;
+          const h = rect.height;
+
+          // 1. Keyboard smooth polling (3_keys-smooth.html & 3_mouse.html)
+          const stepAngle = Math.PI / 180;
+          const stepZoom = 0.18;
+          let movedByKey = false;
+
+          if (keys.has('ArrowLeft'))  { theta -= stepAngle; movedByKey = true; }
+          if (keys.has('ArrowRight')) { theta += stepAngle; movedByKey = true; }
+          if (keys.has('ArrowUp'))    { phi += stepAngle; movedByKey = true; }
+          if (keys.has('ArrowDown'))  { phi -= stepAngle; movedByKey = true; }
+          if (keys.has('=') || keys.has('+')) { R -= stepZoom; movedByKey = true; }
+          if (keys.has('-'))                  { R += stepZoom; movedByKey = true; }
+
+          const limit = Math.PI / 2 - 0.02;
+          phi = Math.max(-limit, Math.min(limit, phi));
+          R = Math.max(3, Math.min(35, R));
+          if (movedByKey) syncSlidersFromState();
+
+          // 2. Automatic rotation around Z (5_pause.html)
+          if (!paused) {
+            animationAngle += speed;
+          }
+          const cosA = Math.cos(animationAngle);
+          const sinA = Math.sin(animationAngle);
+
+          const rXY = R * Math.cos(phi);
+          const eyeX0 = rXY * Math.cos(theta);
+          const eyeY0 = rXY * Math.sin(theta);
+          const eyeZ0 = R * Math.sin(phi);
+
+          const rotatedX = cosA * eyeX0 - sinA * eyeY0;
+          const rotatedY = sinA * eyeX0 + cosA * eyeY0;
+          const finalEye = [rotatedX, rotatedY, eyeZ0];
+
+          const camF = normalize(subtract([0, 0, 0], finalEye));
+          const camS = normalize(cross(camF, [0, 0, 1]));
+          const camU = cross(camS, camF);
+
+          const proj = perspective(45, w / h, 0.1, 100);
+          const view = lookAt(finalEye, [0, 0, 0], [0, 0, 1]);
+          const mvp = multiply(proj, view);
+
+          // Clear canvas white
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+
+          // Optional XY ground grid (-5..5)
+          if (chkGrid.checked) {
+            for (let i = -5; i <= 5; i++) {
+              if (i === 0) continue;
+              draw3DLine(mvp, [i, -5, 0], [i, 5, 0], 'rgba(15, 23, 42, 0.07)', 1, w, h);
+              draw3DLine(mvp, [-5, i, 0], [5, i, 0], 'rgba(15, 23, 42, 0.07)', 1, w, h);
+            }
+          }
+
+          // Optional Red XZ triangle from 01_triangle.html: (0,0,0) -> (3,0,0) -> (0,0,3)
+          if (chkTri.checked) {
+            const p0 = projectPoint(mvp, [0, 0, 0], w, h);
+            const p1 = projectPoint(mvp, [3, 0, 0], w, h);
+            const p2 = projectPoint(mvp, [0, 0, 3], w, h);
+            if (p0.visible && p1.visible && p2.visible) {
+              // Screen-space signed area (Y-down canvas: < 0 means CCW in NDC/Y-up = Front Face)
+              const screenCross = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
+              const isFrontFace = screenCross < 0; // true when finalEye.y < 0
+              const isCulled = chkCullBack.checked && !isFrontFace;
+
+              ctx.save();
+              if (isCulled) {
+                // Faint dashed outline to show where the culled triangle sits
+                ctx.setLineDash([5, 4]);
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.closePath();
+                ctx.stroke();
+              } else {
+                ctx.fillStyle = isFrontFace ? 'rgba(220, 38, 38, 0.72)' : 'rgba(220, 38, 38, 0.42)';
+                ctx.strokeStyle = '#b91c1c';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+              }
+              ctx.restore();
+
+              // Front-face normal arrow pointing toward -Y from triangle centroid (1, 0, 1)
+              draw3DLine(mvp, [1, 0, 1], [1, -1.4, 1], '#d97706', 2, w, h, [3, 3]);
+              draw3DLabel(mvp, [1, -1.5, 1], 'Front Normal (-Y)', '#b45309', w, h, 4, 4, '600 11px Fira Code, monospace');
+            }
+          }
+
+          // Always update Bonus 01_triangle readout (even before checkbox is enabled)
+          const triEyEl = document.getElementById('f_tri_ey');
+          const triStatusEl = document.getElementById('f_tri_status');
+          triEyEl.textContent = rotatedY.toFixed(2);
+          const isFrontSide = rotatedY < 0;
+          const wouldCull = chkCullBack.checked && !isFrontSide;
+          if (Math.abs(rotatedY) < 0.08) {
+            triStatusEl.style.color = '#d97706';
+            triStatusEl.textContent = 'Edge-on (0px line at y ≈ 0)';
+          } else if (wouldCull) {
+            triStatusEl.style.color = '#dc2626';
+            triStatusEl.textContent = 'Back Face — Culled by GPU! (eye.y > 0)';
+          } else if (isFrontSide) {
+            triStatusEl.style.color = '#059669';
+            triStatusEl.textContent = 'Front Face — Visible (CCW, eye.y < 0)';
+          } else {
+            triStatusEl.style.color = '#0284c7';
+            triStatusEl.textContent = 'Back Face — Visible (cullMode: "none")';
+          }
+
+          // Full 3D Coordinate System (-5 to +5) + 3D arrowheads at +5
+          const L = 5;
+          const arrowLen = 0.45;
+          const arrowRad = 0.2;
+
+          // Negative halves (slightly softer dashed/solid) & Positive halves (bold)
+          draw3DLine(mvp, [-L, 0, 0], [0, 0, 0], 'rgba(220, 38, 38, 0.45)', 1.8, w, h, [5, 4]);
+          draw3DLine(mvp, [0, 0, 0], [L, 0, 0], '#dc2626', 2.6, w, h);
+
+          draw3DLine(mvp, [0, -L, 0], [0, 0, 0], 'rgba(5, 150, 105, 0.45)', 1.8, w, h, [5, 4]);
+          draw3DLine(mvp, [0, 0, 0], [0, L, 0], '#059669', 2.6, w, h);
+
+          draw3DLine(mvp, [0, 0, -L], [0, 0, 0], 'rgba(37, 99, 235, 0.45)', 1.8, w, h, [5, 4]);
+          draw3DLine(mvp, [0, 0, 0], [0, 0, L], '#2563eb', 2.6, w, h);
+
+          // 3D Arrowheads (4 barbs per positive tip so they stay visible from every angle)
+          for (const s of [-1, 1]) {
+            // +X tip
+            draw3DLine(mvp, [L, 0, 0], [L - arrowLen, s * arrowRad, 0], '#dc2626', 2.2, w, h);
+            draw3DLine(mvp, [L, 0, 0], [L - arrowLen, 0, s * arrowRad], '#dc2626', 2.2, w, h);
+            // +Y tip
+            draw3DLine(mvp, [0, L, 0], [s * arrowRad, L - arrowLen, 0], '#059669', 2.2, w, h);
+            draw3DLine(mvp, [0, L, 0], [0, L - arrowLen, s * arrowRad], '#059669', 2.2, w, h);
+            // +Z tip
+            draw3DLine(mvp, [0, 0, L], [s * arrowRad, 0, L - arrowLen], '#2563eb', 2.2, w, h);
+            draw3DLine(mvp, [0, 0, L], [0, s * arrowRad, L - arrowLen], '#2563eb', 2.2, w, h);
+          }
+
+          // Origin dot
+          const pOrig = projectPoint(mvp, [0, 0, 0], w, h);
+          if (pOrig.visible) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(pOrig.x, pOrig.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Axis labels & unit ticks
+          draw3DLabel(mvp, [L + 0.35, 0, 0], '+X (5)', '#dc2626', w, h, 4, 4);
+          draw3DLabel(mvp, [-L - 0.35, 0, 0], '-X (-5)', 'rgba(220, 38, 38, 0.75)', w, h, -20, 4, '500 11px Fira Code, monospace');
+          draw3DLabel(mvp, [0, L + 0.35, 0], '+Y (5)', '#059669', w, h, 4, 4);
+          draw3DLabel(mvp, [0, -L - 0.35, 0], '-Y (-5)', 'rgba(5, 150, 105, 0.75)', w, h, -20, 4, '500 11px Fira Code, monospace');
+          draw3DLabel(mvp, [0, 0, L + 0.35], '+Z (5)', '#2563eb', w, h, 4, -2);
+          draw3DLabel(mvp, [0, 0, -L - 0.35], '-Z (-5)', 'rgba(37, 99, 235, 0.75)', w, h, 4, 4, '500 11px Fira Code, monospace');
+
+          if (chkTicks.checked) {
+            for (let i = -4; i <= 4; i++) {
+              if (i === 0) continue;
+              draw3DLine(mvp, [i, -0.08, 0], [i, 0.08, 0], '#dc2626', 1.3, w, h);
+              draw3DLine(mvp, [-0.08, i, 0], [0.08, i, 0], '#059669', 1.3, w, h);
+              draw3DLine(mvp, [-0.08, 0, i], [0.08, 0, i], '#2563eb', 1.3, w, h);
+            }
+          }
+
+          // Update HUD & Formula readouts
+          const alphaDeg = ((animationAngle * 180) / Math.PI) % 360;
+          document.getElementById('hudEye').textContent =
+            `(${rotatedX.toFixed(1)}, ${rotatedY.toFixed(1)}, ${eyeZ0.toFixed(1)})`;
+          document.getElementById('hudAngles').textContent =
+            `θ = ${wrapDeg(theta).toFixed(1)}°, φ = ${((phi * 180) / Math.PI).toFixed(1)}°, R = ${R.toFixed(1)}`;
+
+          const hudState = document.getElementById('hudState');
+          hudState.style.color = paused ? '#d97706' : '#059669';
+          hudState.textContent = `${paused ? 'Paused' : 'Running'} (α = ${alphaDeg.toFixed(1)}°)`;
+
+          document.getElementById('f_r_val').textContent = R.toFixed(1);
+          document.getElementById('f_phi_val').textContent = `${((phi * 180) / Math.PI).toFixed(1)}°`;
+          document.getElementById('f_rxy').textContent = rXY.toFixed(2);
+          document.getElementById('f_ex0').textContent = eyeX0.toFixed(2);
+          document.getElementById('f_ey0').textContent = eyeY0.toFixed(2);
+          document.getElementById('f_ez0').textContent = eyeZ0.toFixed(2);
+          document.getElementById('f_alpha').textContent = `${alphaDeg.toFixed(1)}°`;
+          document.getElementById('f_pause_state').textContent = paused ? 'paused' : 'running';
+          document.getElementById('f_theta_tot').textContent = `${wrapDeg(theta + animationAngle).toFixed(1)}°`;
+          document.getElementById('f_final_eye').textContent =
+            `(${rotatedX.toFixed(2)}, ${rotatedY.toFixed(2)}, ${eyeZ0.toFixed(2)})`;
+
+          document.getElementById('f_vec_f').textContent =
+            `(${camF[0].toFixed(2)}, ${camF[1].toFixed(2)}, ${camF[2].toFixed(2)})`;
+          document.getElementById('f_vec_s').textContent =
+            `(${camS[0].toFixed(2)}, ${camS[1].toFixed(2)}, ${camS[2].toFixed(2)})`;
+          document.getElementById('f_vec_u').textContent =
+            `(${camU[0].toFixed(2)}, ${camU[1].toFixed(2)}, ${camU[2].toFixed(2)})`;
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      syncSlidersFromState();
+      updatePauseUI();
+      renderMath();
+      wrapper.focus();
+      requestAnimationFrame(render);
+    })();
+  </script>
+</body>
+</html>

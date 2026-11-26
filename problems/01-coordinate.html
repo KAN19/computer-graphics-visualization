@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1. Mathematical to Graphical Coordinate Converter</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f0f2f5;
+      color: #2c3e50;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      gap: 24px;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .panel {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel h3 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 18px;
+    }
+
+    .panel p {
+      margin: 0;
+      font-size: 13px;
+      color: #7f8c8d;
+      line-height: 1.4;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #34495e;
+    }
+
+    .input-group input,
+    .input-group select {
+      padding: 8px 12px;
+      border: 1.5px solid #dcdde1;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fff;
+      color: #2c3e50;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      border-color: #2980b9;
+    }
+
+    .result-box {
+      background: #f8f9fa;
+      border: 1.5px solid #e9ecef;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .result-box .formula {
+      font-family: monospace;
+      color: #2c3e50;
+      background: #eaeded;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 6px 0;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .result-box .final-res {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #ccc;
+      color: #2980b9;
+      font-size: 15px;
+    }
+
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .quick-buttons button {
+      flex: 1 1 45%;
+      padding: 6px 8px;
+      background: #edf2f7;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .quick-buttons button:hover {
+      background: #e2e8f0;
+      border-color: #a0aec0;
+    }
+
+    .legend-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      background: #fdfefe;
+      border: 1px solid #edf2f7;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    canvas {
+      border: 2px solid #2c3e50;
+      border-radius: 4px;
+      background: white;
+      display: block;
+      width: 600px;
+      height: 600px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Control Panel -->
+    <div class="panel">
+      <h3>Formula Converter (Scale = 4)</h3>
+      <p>Graphical Max = <strong>600</strong>, Math Max = <strong>4</strong>.<br>Step = <code>(600 / 2) / 4 = 75px / unit</code>.</p>
+
+      <div class="quick-buttons">
+        <button type="button" onclick="setPoint(2, 0)">M(2, 0)</button>
+        <button type="button" onclick="setPoint(3, 1)">M(3, 1)</button>
+        <button type="button" onclick="setPoint(4, -4)">M(4, -4) Corner</button>
+        <button type="button" onclick="setPoint(-4, 4)">M(-4, 4) Corner</button>
+      </div>
+
+      <div class="input-group">
+        <label for="mathX">Mx (Mathematical X):</label>
+        <input type="number" id="mathX" value="3" step="0.5">
+      </div>
+
+      <div class="input-group">
+        <label for="mathY">My (Mathematical Y):</label>
+        <input type="number" id="mathY" value="1" step="0.5">
+      </div>
+
+      <!-- Live Calculation Box -->
+      <div class="result-box">
+        <div><strong>Inputs:</strong> Mx = <span id="lblMx">3</span>, My = <span id="lblMy">1</span></div>
+        <div style="margin-top: 6px;"><strong>Calculation:</strong></div>
+        <div class="formula">Gx = (600 / 2) / 4 * <span id="calcMx">3</span> + 300<br>= <strong><span id="resGx">525</span></strong></div>
+        <div class="formula" id="formulaGy">Gy = 300 - (600 / 2) / 4 * <span id="calcMy">1</span><br>= <strong><span id="resGy">225</span></strong></div>
+        <div class="final-res">Graphical Point: <strong>(<span id="finalGx">525</span>, <span id="finalGy">225</span>)</strong></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend-box">
+        <div class="legend-item">
+          <div class="legend-color" style="background: #2980b9;"></div>
+          <span><strong>Top Border:</strong> +X Graphical (0 → 600)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #27ae60;"></div>
+          <span><strong>Left Border:</strong> +Y Graphical (0 → 600)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #7f8c8d;"></div>
+          <span><strong>Center Crosshair:</strong> Mathematical Axes (-4 → +4, +Y UP)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 600x600 Canvas -->
+    <canvas id="canvas" width="600" height="600"></canvas>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const graphMaxX = canvas.width;  // 600
+      const graphMaxY = canvas.height; // 600
+      const mathMaxX = 4;              // 4
+      const mathMaxY = 4;              // 4
+
+      const centerX = graphMaxX / 2; // 300
+      const centerY = graphMaxY / 2; // 300
+      const stepX = (graphMaxX / 2) / mathMaxX; // 300 / 4 = 75 pixels per unit
+      const stepY = (graphMaxY / 2) / mathMaxY; // 300 / 4 = 75 pixels per unit
+
+      const mathXInput = document.getElementById('mathX');
+      const mathYInput = document.getElementById('mathY');
+
+      const lblMx = document.getElementById('lblMx');
+      const lblMy = document.getElementById('lblMy');
+      const calcMx = document.getElementById('calcMx');
+      const calcMy = document.getElementById('calcMy');
+      const resGx = document.getElementById('resGx');
+      const resGy = document.getElementById('resGy');
+      const finalGx = document.getElementById('finalGx');
+      const finalGy = document.getElementById('finalGy');
+      const formulaGy = document.getElementById('formulaGy');
+
+      window.setPoint = function (x, y) {
+        mathXInput.value = x;
+        mathYInput.value = y;
+        render();
+      };
+
+      function calculateGraphical(Mx, My) {
+        const Gx = stepX * Mx + centerX;
+        const Gy = centerY - stepY * My;
+        return { x: Gx, y: Gy };
+      }
+
+      function drawPoint(Mx, My) {
+        const g = calculateGraphical(Mx, My);
+
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#2980b9aa';
+        ctx.lineWidth = 1.4;
+
+        ctx.beginPath();
+        ctx.moveTo(g.x, centerY);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, g.y);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#e74c3caa';
+        ctx.beginPath();
+        ctx.moveTo(g.x, 0);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, g.y);
+        ctx.lineTo(g.x, g.y);
+        ctx.stroke();
+        ctx.restore();
+
+        const dotX = Math.max(7, Math.min(graphMaxX - 7, g.x));
+        const dotY = Math.max(7, Math.min(graphMaxY - 7, g.y));
+
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 6.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2980b9';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.save();
+        let labelX, labelY1, labelY2;
+        let align = 'left';
+
+        if (g.x > graphMaxX - 110) {
+          align = 'right';
+          labelX = dotX - 10;
+        } else {
+          align = 'left';
+          labelX = dotX + 10;
+        }
+
+        if (g.y > graphMaxY - 45) {
+          labelY1 = dotY - 24;
+          labelY2 = dotY - 8;
+        } else if (g.y < 45) {
+          labelY1 = dotY + 12;
+          labelY2 = dotY + 28;
+        } else {
+          labelY1 = dotY - 6;
+          labelY2 = dotY + 10;
+        }
+
+        ctx.font = 'bold 13px sans-serif';
+        const text1 = `M(${Mx}, ${My})`;
+        const text2 = `G(${g.x}, ${g.y})`;
+        const textWidth = Math.max(ctx.measureText(text1).width, ctx.measureText(text2).width);
+        const bgX = (align === 'right') ? (labelX - textWidth - 6) : (labelX - 4);
+        const bgY = labelY1 - 12;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 1;
+        ctx.fillRect(bgX, bgY, textWidth + 10, 36);
+        ctx.strokeRect(bgX, bgY, textWidth + 10, 36);
+
+        ctx.textAlign = align;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#1b4f72';
+        ctx.fillText(text1, labelX, labelY1 - 9);
+
+        ctx.font = '11px monospace';
+        ctx.fillStyle = '#c0392b';
+        ctx.fillText(text2, labelX, labelY2 - 8);
+        ctx.restore();
+      }
+
+      function drawGridAndAxes() {
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= graphMaxX; x += stepX) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, graphMaxY);
+          ctx.stroke();
+        }
+
+        for (let y = 0; y <= graphMaxY; y += stepY) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(graphMaxX, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 1.5);
+        ctx.lineTo(graphMaxX, 1.5);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(1.5, 0);
+        ctx.lineTo(1.5, graphMaxY);
+        ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#2980b9';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        for (let x = 0; x <= graphMaxX; x += stepX) {
+          ctx.strokeStyle = '#2980b9';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, 8);
+          ctx.stroke();
+
+          if (x === 0) continue;
+          if (x === graphMaxX) {
+            ctx.textAlign = 'right';
+            ctx.fillText(`Gx=600`, x - 4, 10);
+          } else {
+            ctx.textAlign = 'center';
+            ctx.fillText(`Gx=${x}`, x, 10);
+          }
+        }
+
+        ctx.fillStyle = '#27ae60';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        for (let y = 0; y <= graphMaxY; y += stepY) {
+          ctx.strokeStyle = '#27ae60';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(8, y);
+          ctx.stroke();
+
+          if (y === 0) continue;
+          if (y === graphMaxY) {
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`Gy=600`, 10, y - 4);
+          } else {
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`Gy=${y}`, 10, y);
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#2c3e50';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Graphic Root (0, 0)', 14, 14);
+
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.lineWidth = 1.6;
+
+        ctx.beginPath();
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(graphMaxX, centerY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, graphMaxY);
+        ctx.stroke();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#7f8c8d';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('+4 (math)', graphMaxX - 6, centerY - 6);
+        ctx.textAlign = 'left';
+        ctx.fillText('-4 (math)', 6, centerY - 6);
+
+        ctx.fillText('+4 (math)', centerX + 6, 26);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('-4 (math)', centerX + 6, graphMaxY - 8);
+
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = '#34495e';
+
+        for (let i = -mathMaxX; i <= mathMaxX; i++) {
+          if (i === 0) continue;
+          const xPos = centerX + i * stepX;
+          ctx.strokeStyle = '#7f8c8d';
+          ctx.beginPath();
+          ctx.moveTo(xPos, centerY - 4);
+          ctx.lineTo(xPos, centerY + 4);
+          ctx.stroke();
+
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(`Mx=${i}`, xPos, centerY + 6);
+        }
+
+        for (let i = -mathMaxY; i <= mathMaxY; i++) {
+          if (i === 0) continue;
+          const yPos = centerY - i * stepY;
+          ctx.strokeStyle = '#7f8c8d';
+          ctx.beginPath();
+          ctx.moveTo(centerX - 4, yPos);
+          ctx.lineTo(centerX + 4, yPos);
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`My=${i}`, centerX + 6, yPos);
+        }
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fill();
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#c0392b';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Origin (0, 0)', centerX - 8, centerY + 8);
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, graphMaxX, graphMaxY);
+
+        drawGridAndAxes();
+
+        const Mx = parseFloat(mathXInput.value) || 0;
+        const My = parseFloat(mathYInput.value) || 0;
+
+        drawPoint(Mx, My);
+
+        const g = calculateGraphical(Mx, My);
+
+        lblMx.textContent = Mx;
+        lblMy.textContent = My;
+        calcMx.textContent = Mx;
+        calcMy.textContent = My;
+        resGx.textContent = g.x;
+        resGy.textContent = g.y;
+        finalGx.textContent = g.x;
+        finalGy.textContent = g.y;
+
+        formulaGy.innerHTML = `Gy = 300 - (600 / 2) / 4 * ${My}<br>= <strong>${g.y}</strong>`;
+      }
+
+      mathXInput.addEventListener('input', render);
+      mathYInput.addEventListener('input', render);
+
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3. Complex Numbers: Explaining the Magic Formula</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1e293b;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .lab2d-layout {
+      display: flex;
+      gap: 24px;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+      align-items: flex-start;
+      max-width: 1280px;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .lab2d-sidebar {
+      flex: 1 1 480px;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .lab2d-canvas-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lab2d-canvas-col canvas {
+      border: 2px solid #2c3e50;
+      border-radius: 6px;
+      background: #ffffff;
+      display: block;
+      width: 600px;
+      height: 600px;
+    }
+
+    .lab2d-card {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .lab2d-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lab2d-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(2, 132, 199, 0.12);
+      color: #0284c7;
+    }
+
+    .vec-grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .vec-box {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .vec-box.vec-u {
+      border-left: 4px solid #2563eb;
+    }
+
+    .vec-box.vec-v {
+      border-left: 4px solid #059669;
+    }
+
+    .vec-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .vec-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .vec-row input[type="number"] {
+      width: 80px;
+      padding: 5px 8px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'Fira Code', monospace;
+      background: #e8f8f0;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .wb-formula {
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      color: #1e293b;
+    }
+
+    .i2-pill {
+      display: inline-block;
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 0 5px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .iter-controls-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .iter-btn {
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .iter-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="lab2d-layout">
+    <div class="lab2d-sidebar">
+      <div>
+        <h3 style="margin:0; color:#0f172a; font-size:19px;">Where Does the Magic Formula Come From?</h3>
+        <p style="margin:4px 0 0 0; font-size:13px; color:#475569;">
+          Step-by-step whiteboard derivation using unit vectors <strong>e₁ &rarr; 1</strong> and <strong>e₂ &rarr; i</strong>, and why <span class="i2-pill">i&sup2; = -1</span>.
+        </p>
+      </div>
+
+      <!-- Interactive Mode Selector for Whiteboard Canvas -->
+      <div class="lab2d-card">
+        <h4><span class="lab2d-badge">Interactive Whiteboard</span> Click a Step to Visualize on Canvas</h4>
+        <div class="iter-controls-bar" style="margin-top:4px;">
+          <button type="button" class="iter-btn" onclick="setComplexDemo(0, 1, 0, 1)">Step A: Why i &times; i = -1?</button>
+          <button type="button" class="iter-btn" onclick="setComplexDemo(2, 1, 0, 1)">Step B: Multiply (2 + 1i) &times; i</button>
+          <button type="button" class="iter-btn" onclick="setComplexDemo(2, 0.5, 0.5, 1.5)">Step C: Full Whiteboard Formula</button>
+        </div>
+      </div>
+
+      <!-- Inputs for Complex Numbers -->
+      <div class="vec-grid-inputs">
+        <div class="vec-box vec-u">
+          <div style="font-weight:700; font-size:13px; color:#2563eb;">u = u₁ + i·u₂</div>
+          <div class="vec-row">
+            <label for="cxU1">u₁ (Real):</label>
+            <input type="number" id="cxU1" value="0" step="0.5" min="-4" max="4">
+          </div>
+          <div class="vec-row">
+            <label for="cxU2">u₂ (Imag i):</label>
+            <input type="number" id="cxU2" value="1" step="0.5" min="-4" max="4">
+          </div>
+        </div>
+
+        <div class="vec-box vec-v">
+          <div style="font-weight:700; font-size:13px; color:#059669;">v = v₁ + i·v₂</div>
+          <div class="vec-row">
+            <label for="cxV1">v₁ (Real):</label>
+            <input type="number" id="cxV1" value="0" step="0.5" min="-4" max="4">
+          </div>
+          <div class="vec-row">
+            <label for="cxV2">v₂ (Imag i):</label>
+            <input type="number" id="cxV2" value="1" step="0.5" min="-4" max="4">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Renaming e1, e2 to 1, i -->
+      <div class="lab2d-card">
+        <h4><span class="lab2d-badge">Step 1</span> Rename Guiding Arrows e₁ and e₂ to 1 and i</h4>
+        <div style="font-size:12.5px; color:#334155;">
+          &bull; Red arrow <strong style="color:#dc2626;">e₁ = [1, 0]</strong> (1 step right, 0&deg;) is called <strong>1</strong>.<br>
+          &bull; Black arrow <strong style="color:#0f172a;">e₂ = [0, 1]</strong> (1 step up, 90&deg;) is called <strong>i</strong>.<br>
+          &bull; Any 2D vector <code>[u₁, u₂] = u₁·e₁ + u₂·e₂</code> can now be written as a complex number: <code>u₁ + i·u₂</code>!
+        </div>
+      </div>
+
+      <!-- Step 2: Why i^2 = -1 -->
+      <div class="lab2d-card">
+        <h4><span class="lab2d-badge">Step 2</span> Geometric Proof: Why is i&sup2; = -1?</h4>
+        <div style="font-size:12.5px; color:#334155;">
+          The arrow <strong>i</strong> has length <code>1</code> and angle <code>90&deg;</code> (pointing straight up).<br>
+          When we multiply <strong>i &times; i</strong> using our Turn &amp; Stretch rule:<br>
+          &bull; <strong>New Angle:</strong> 90&deg; + 90&deg; = 180&deg; (pointing straight left!).<br>
+          &bull; <strong>New Length:</strong> 1 &times; 1 = 1.<br>
+          &rarr; Length 1 pointing left is <code>[-1, 0]</code>, which is <strong>-1</strong>! Thus <span class="i2-pill">i&sup2; = -1</span>.
+        </div>
+      </div>
+
+      <!-- Step 3: FOIL Algebra Expansion -->
+      <div class="lab2d-card" style="border-color:#c084fc; background:#faf5ff;">
+        <h4><span class="lab2d-badge" style="background:#f3e8ff; color:#7e22ce;">Step 3</span> Multiply Brackets &amp; Group Real / Imaginary Parts</h4>
+        <div class="wb-formula">
+          <div>(<span id="cxExprU">0 + 1i</span>) &middot; (<span id="cxExprV">0 + 1i</span>)</div>
+          <div style="color:#475569; margin-top:3px;">= u₁v₁ + i·u₁v₂ + i·u₂v₁ + <span class="i2-pill">i&sup2;</span>·u₂v₂</div>
+          <div style="margin-top:3px;">= (<span id="cxT1">0.00</span>) + i(<span id="cxT2">0.00</span>) + i(<span id="cxT3">0.00</span>) + (<span class="i2-pill">-1</span>)(<span id="cxT4">1.00</span>)</div>
+          <div style="margin-top:5px; padding-top:5px; border-top:1px dashed #cbd5e1;">
+            <strong>Real Part (New X)</strong> = u₁v₁ - u₂v₂ = <strong style="color:#7e22ce;" id="cxResX">-1.00</strong><br>
+            <strong>Imag Part (New Y)</strong> = u₁v₂ + u₂v₁ = <strong style="color:#7e22ce;" id="cxResY">0.00</strong>
+          </div>
+          <div style="margin-top:4px; color:#0284c7; font-weight:700;">
+            &rarr; Result: <span id="cxFinalComplex">-1.00 + 0.00i</span> &rArr; Point [<span id="cxFinalVec">-1.00, 0.00</span>]
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: 600x600 Canvas -->
+    <div class="lab2d-canvas-col">
+      <canvas id="complexDerivCanvas" width="600" height="600"></canvas>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const W = 600;
+      const H = 600;
+      const CX = 300;
+      const CY = 300;
+      const STEP = 75;
+
+      function toGraph(mx, my) {
+        return { x: CX + mx * STEP, y: CY - my * STEP };
+      }
+
+      function drawVectorArrow(ctx, mx1, my1, mx2, my2, color, label, width = 2.5) {
+        const p1 = toGraph(mx1, my1);
+        const p2 = toGraph(mx2, my2);
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (dist > 4) {
+          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+          const headLen = 10;
+          ctx.beginPath();
+          ctx.moveTo(p2.x, p2.y);
+          ctx.lineTo(p2.x - headLen * Math.cos(angle - Math.PI / 6), p2.y - headLen * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(p2.x - headLen * Math.cos(angle + Math.PI / 6), p2.y - headLen * Math.sin(angle + Math.PI / 6));
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        if (label) {
+          ctx.font = 'bold 12px Fira Code, monospace';
+          const lx = Math.max(18, Math.min(W - 115, p2.x + 8));
+          const ly = Math.max(18, Math.min(H - 18, p2.y - 8));
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+          const tw = ctx.measureText(label).width;
+          ctx.fillRect(lx - 3, ly - 11, tw + 6, 16);
+          ctx.fillStyle = color;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillText(label, lx, ly);
+        }
+        ctx.restore();
+      }
+
+      function drawBaseCanvas(ctx) {
+        ctx.clearRect(0, 0, W, H);
+
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= W; x += STEP) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y <= H; y += STEP) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 1.5); ctx.lineTo(W, 1.5); ctx.stroke();
+
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(1.5, 0); ctx.lineTo(1.5, H); ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#2980b9';
+        ctx.textBaseline = 'top';
+        for (let x = STEP; x <= W; x += STEP) {
+          ctx.strokeStyle = '#2980b9';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 7); ctx.stroke();
+          ctx.textAlign = (x === W) ? 'right' : 'center';
+          ctx.fillText(`Gx=${x}`, (x === W) ? x - 4 : x, 9);
+        }
+
+        ctx.fillStyle = '#27ae60';
+        ctx.textAlign = 'left';
+        for (let y = STEP; y <= H; y += STEP) {
+          ctx.strokeStyle = '#27ae60';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(7, y); ctx.stroke();
+          ctx.textBaseline = (y === H) ? 'bottom' : 'middle';
+          ctx.fillText(`Gy=${y}`, 9, (y === H) ? y - 4 : y);
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Graphic Root (0,0)', 12, 12);
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(0, CY); ctx.lineTo(W, CY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(CX, 0); ctx.lineTo(CX, H); ctx.stroke();
+
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = '#475569';
+        for (let i = -4; i <= 4; i++) {
+          if (i === 0) continue;
+          const xPos = CX + i * STEP;
+          ctx.beginPath(); ctx.moveTo(xPos, CY - 4); ctx.lineTo(xPos, CY + 4); ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(`${i}`, xPos, CY + 6);
+
+          const yPos = CY - i * STEP;
+          ctx.beginPath(); ctx.moveTo(CX - 4, yPos); ctx.lineTo(CX + 4, yPos); ctx.stroke();
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${i}i`, CX + 6, yPos);
+        }
+
+        drawVectorArrow(ctx, 0, 0, 1, 0, '#dc2626', 'e₁ = 1', 3);
+        drawVectorArrow(ctx, 0, 0, 0, 1, '#0f172a', 'e₂ = i', 3);
+      }
+
+      function drawAngleArc(ctx, angleRad, radiusPx, color, label) {
+        if (Math.abs(angleRad) < 0.01) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(CX, CY, radiusPx, 0, -angleRad, angleRad > 0);
+        ctx.stroke();
+
+        if (label) {
+          const midAngle = -angleRad / 2;
+          const tx = CX + (radiusPx + 14) * Math.cos(midAngle);
+          const ty = CY + (radiusPx + 14) * Math.sin(midAngle);
+          ctx.fillStyle = color;
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, tx, ty);
+        }
+        ctx.restore();
+      }
+
+      const cxCanvas = document.getElementById('complexDerivCanvas');
+      const cxCtx = cxCanvas.getContext('2d');
+      const cxU1 = document.getElementById('cxU1');
+      const cxU2 = document.getElementById('cxU2');
+      const cxV1 = document.getElementById('cxV1');
+      const cxV2 = document.getElementById('cxV2');
+
+      window.setComplexDemo = function (u1, u2, v1, v2) {
+        cxU1.value = u1;
+        cxU2.value = u2;
+        cxV1.value = v1;
+        cxV2.value = v2;
+        renderComplexDeriv();
+      };
+
+      function fmtComplex(re, im) {
+        const sign = im >= 0 ? '+' : '−';
+        return `${re} ${sign} ${Math.abs(im)}i`;
+      }
+
+      function renderComplexDeriv() {
+        const u1 = parseFloat(cxU1.value) || 0;
+        const u2 = parseFloat(cxU2.value) || 0;
+        const v1 = parseFloat(cxV1.value) || 0;
+        const v2 = parseFloat(cxV2.value) || 0;
+
+        const t1 = u1 * v1;
+        const t2 = u1 * v2;
+        const t3 = u2 * v1;
+        const t4 = u2 * v2;
+        const resX = t1 - t4;
+        const resY = t2 + t3;
+
+        drawBaseCanvas(cxCtx);
+
+        const angU = Math.atan2(u2, u1);
+        const angV = Math.atan2(v2, v1);
+        const angProd = angU + angV;
+
+        drawAngleArc(cxCtx, angU, 36, '#2563eb', 'α');
+        drawAngleArc(cxCtx, angV, 52, '#059669', 'β');
+        drawAngleArc(cxCtx, angProd, 70, '#9333ea', 'α+β');
+
+        drawVectorArrow(cxCtx, 0, 0, u1, u2, '#2563eb', `u = ${fmtComplex(u1, u2)}`, 2.6);
+        drawVectorArrow(cxCtx, 0, 0, v1, v2, '#059669', `v = ${fmtComplex(v1, v2)}`, 2.6);
+        drawVectorArrow(cxCtx, 0, 0, resX, resY, '#9333ea', `u·v = ${fmtComplex(Number(resX.toFixed(2)), Number(resY.toFixed(2)))}`, 3.4);
+
+        document.getElementById('cxExprU').textContent = fmtComplex(u1, u2);
+        document.getElementById('cxExprV').textContent = fmtComplex(v1, v2);
+        document.getElementById('cxT1').textContent = t1.toFixed(2);
+        document.getElementById('cxT2').textContent = t2.toFixed(2);
+        document.getElementById('cxT3').textContent = t3.toFixed(2);
+        document.getElementById('cxT4').textContent = t4.toFixed(2);
+        document.getElementById('cxResX').textContent = resX.toFixed(2);
+        document.getElementById('cxResY').textContent = resY.toFixed(2);
+        document.getElementById('cxFinalComplex').textContent = fmtComplex(resX.toFixed(2), resY.toFixed(2));
+        document.getElementById('cxFinalVec').textContent = `[${resX.toFixed(2)}, ${resY.toFixed(2)}]`;
+      }
+
+      [cxU1, cxU2, cxV1, cxV2].forEach(el => el.addEventListener('input', renderComplexDeriv));
+      renderComplexDeriv();
+    })();
+  </script>
+</body>
+</html>
